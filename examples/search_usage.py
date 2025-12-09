@@ -10,7 +10,6 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from NGTube import Search, SearchFilters
-import json
 
 def main():
     # Example 1: Basic search
@@ -25,20 +24,17 @@ def main():
     print(f"Videos: {len(videos)}")
     print()
 
-    # Example 2: Search with filter for channels only
+    # Example 2: Search channels only
     print("=== Search Channels Only ===")
     search_channels = Search("Python programming", max_results=10, filter=SearchFilters.CHANNELS)
     search_channels.perform_search()
     results_channels = search_channels.get_results()
     print(f"Query: {results_channels['query']}")
     print(f"Filter: {results_channels['filter']} (Channels only)")
-    print(f"Params: {results_channels['params']}")
     print(f"Estimated results: {results_channels['estimated_results']}")
     print(f"Loaded items: {results_channels['loaded_items']}")
     channels = [item for item in results_channels['items'] if item['type'] == 'channel']
     print(f"Channels: {len(channels)}")
-    for channel in channels[:3]:
-        print(f"  Channel: {channel['title']} - {channel.get('subscriberCount', 'N/A')}")
     print()
 
     # Example 3: Search videos uploaded today
@@ -48,7 +44,6 @@ def main():
     results_today = search_today.get_results()
     print(f"Query: {results_today['query']}")
     print(f"Filter: {results_today['filter']} (Videos uploaded today)")
-    print(f"Params: {results_today['params']}")
     print(f"Estimated results: {results_today['estimated_results']}")
     print(f"Loaded items: {results_today['loaded_items']}")
     print()
@@ -60,16 +55,48 @@ def main():
     results_date = search_date.get_results()
     print(f"Query: {results_date['query']}")
     print(f"Filter: {results_date['filter']} (Sorted by upload date)")
-    print(f"Params: {results_date['params']}")
     print(f"Estimated results: {results_date['estimated_results']}")
     print(f"Loaded items: {results_date['loaded_items']}")
     print()
 
-    # Save one example to file
-    with open("search_filtered_example.json", "w", encoding="utf-8") as f:
-        json.dump(results_channels, f, indent=4, ensure_ascii=False)
+    # Example 5: Search movies
+    print("=== Search Movies ===")
+    search_movies = Search("Archive", max_results=5, filter=SearchFilters.MOVIES)
+    search_movies.perform_search()
+    results_movies = search_movies.get_results()
+    print(f"Query: {results_movies['query']}")
+    print(f"Filter: {results_movies['filter']} (Movies)")
+    print(f"Estimated results: {results_movies['estimated_results']}")
+    print(f"Loaded items: {results_movies['loaded_items']}")
+    movies = [item for item in results_movies['items'] if item['type'] == 'movie']
+    print(f"Movies: {len(movies)}")
+    print()
 
-    print("Filtered search results saved to search_filtered_example.json")
+    # Example 6: Search playlists
+    print("=== Search Playlists ===")
+    search_playlists = Search("Hitman", max_results=5, filter=SearchFilters.PLAYLISTS)
+    search_playlists.perform_search()
+    results_playlists = search_playlists.get_results()
+    print(f"Query: {results_playlists['query']}")
+    print(f"Filter: {results_playlists['filter']} (Playlists)")
+    print(f"Estimated results: {results_playlists['estimated_results']}")
+    print(f"Loaded items: {results_playlists['loaded_items']}")
+    playlists = [item for item in results_playlists['items'] if item['type'] == 'playlist']
+    print(f"Playlists: {len(playlists)}")
+    print()
+
+    # Example 7: Search videos last hour
+    print("=== Search Videos Last Hour ===")
+    search_last_hour = Search("Python", max_results=10, filter=SearchFilters.LAST_HOUR)
+    search_last_hour.perform_search()
+    results_last_hour = search_last_hour.get_results()
+    print(f"Query: {results_last_hour['query']}")
+    print(f"Filter: {results_last_hour['filter']} (Videos last hour)")
+    print(f"Estimated results: {results_last_hour['estimated_results']}")
+    print(f"Loaded items: {results_last_hour['loaded_items']}")
+    print()
+
+    print("All tests completed!")
 
 if __name__ == "__main__":
     main()

@@ -12,8 +12,11 @@ class SearchFilters:
     """
     Predefined search filters for YouTube search.
     """
+    MOVIES = "EgIQBA%3D%3D"
     CHANNELS = "EgIQAg%3D%3D"
+    PLAYLISTS = "EgIQAw%3D%3D"
     VIDEOS_TODAY = "EgIIAg%3D%3D"
+    LAST_HOUR = "EgIIAQ%3D%3D"
     SORT_BY_DATE = "CAI%3D"
 
 class Search:
@@ -184,7 +187,40 @@ class Search:
                             "subscriberCount": channel.get("videoCountText", {}).get("simpleText"),  # Note: This seems to be videoCount in the data
                             "thumbnail": channel.get("thumbnail", {}).get("thumbnails", [{}])[0].get("url")
                         }
-                        items.append(channel_info)
+                    elif "movieRenderer" in content:
+                        movie = content["movieRenderer"]
+                        movie_info = {
+                            "type": "movie",
+                            "videoId": movie.get("videoId"),
+                            "title": movie.get("title", {}).get("runs", [{}])[0].get("text"),
+                            "description": " ".join([run.get("text", "") for run in movie.get("descriptionSnippet", {}).get("runs", [])]),
+                            "channel": movie.get("longBylineText", {}).get("runs", [{}])[0].get("text"),
+                            "length": movie.get("lengthText", {}).get("simpleText"),
+                            "thumbnail": movie.get("thumbnail", {}).get("thumbnails", [{}])[0].get("url")
+                        }
+                        items.append(movie_info)
+                    elif "lockupViewModel" in content:
+                        lockup = content["lockupViewModel"]
+                        metadata = lockup.get("metadata", {}).get("lockupMetadataViewModel", {})
+                        title = metadata.get("title", {}).get("content", "")
+                        content_metadata = metadata.get("metadata", {}).get("contentMetadataViewModel", {})
+                        metadata_rows = content_metadata.get("metadataRows", [])
+                        channel = ""
+                        video_count = ""
+                        if metadata_rows:
+                            parts = metadata_rows[0].get("metadataParts", [])
+                            if parts:
+                                channel = parts[0].get("text", {}).get("content", "")
+                            if len(parts) > 1:
+                                video_count = parts[1].get("text", {}).get("content", "")
+                        playlist_info = {
+                            "type": "playlist",
+                            "title": title,
+                            "channel": channel,
+                            "videoCount": video_count,
+                            "thumbnail": lockup.get("contentImage", {}).get("collectionThumbnailViewModel", {}).get("primaryThumbnail", {}).get("thumbnailViewModel", {}).get("image", {}).get("sources", [{}])[0].get("url", "")
+                        }
+                        items.append(playlist_info)
             elif "continuationItemRenderer" in item:
                 continuation = item["continuationItemRenderer"]["continuationEndpoint"]["continuationCommand"]["token"]
         # Check for continuation in onResponseReceivedCommands
@@ -218,6 +254,40 @@ class Search:
                                         "thumbnail": channel.get("thumbnail", {}).get("thumbnails", [{}])[0].get("url")
                                     }
                                     items.append(channel_info)
+                                elif "movieRenderer" in content:
+                                    movie = content["movieRenderer"]
+                                    movie_info = {
+                                        "type": "movie",
+                                        "videoId": movie.get("videoId"),
+                                        "title": movie.get("title", {}).get("runs", [{}])[0].get("text"),
+                                        "description": " ".join([run.get("text", "") for run in movie.get("descriptionSnippet", {}).get("runs", [])]),
+                                        "channel": movie.get("longBylineText", {}).get("runs", [{}])[0].get("text"),
+                                        "length": movie.get("lengthText", {}).get("simpleText"),
+                                        "thumbnail": movie.get("thumbnail", {}).get("thumbnails", [{}])[0].get("url")
+                                    }
+                                    items.append(movie_info)
+                                elif "lockupViewModel" in content:
+                                    lockup = content["lockupViewModel"]
+                                    metadata = lockup.get("metadata", {}).get("lockupMetadataViewModel", {})
+                                    title = metadata.get("title", {}).get("content", "")
+                                    content_metadata = metadata.get("metadata", {}).get("contentMetadataViewModel", {})
+                                    metadata_rows = content_metadata.get("metadataRows", [])
+                                    channel = ""
+                                    video_count = ""
+                                    if metadata_rows:
+                                        parts = metadata_rows[0].get("metadataParts", [])
+                                        if parts:
+                                            channel = parts[0].get("text", {}).get("content", "")
+                                        if len(parts) > 1:
+                                            video_count = parts[1].get("text", {}).get("content", "")
+                                    playlist_info = {
+                                        "type": "playlist",
+                                        "title": title,
+                                        "channel": channel,
+                                        "videoCount": video_count,
+                                        "thumbnail": lockup.get("contentImage", {}).get("collectionThumbnailViewModel", {}).get("primaryThumbnail", {}).get("thumbnailViewModel", {}).get("image", {}).get("sources", [{}])[0].get("url", "")
+                                    }
+                                    items.append(playlist_info)
                         elif "continuationItemRenderer" in item:
                             continuation = item["continuationItemRenderer"]["continuationEndpoint"]["continuationCommand"]["token"]
         return items, estimated_results, continuation
