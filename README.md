@@ -17,7 +17,21 @@ A comprehensive Python library for scraping YouTube data, including videos, comm
 
 ## Installation
 
-### Option 1: Install as Package (Recommended)
+### 🚀 Quick Install (Recommended)
+
+```bash
+pip install NGTube
+```
+
+That's it! NGTube is now available on PyPI and ready to use.
+
+### Option 1: Install from PyPI (Stable)
+
+```bash
+pip install NGTube
+```
+
+### Option 2: Install from Source
 
 1. Clone or download the repository.
 2. Navigate to the project directory.
@@ -27,9 +41,7 @@ A comprehensive Python library for scraping YouTube data, including videos, comm
 pip install .
 ```
 
-This will install NGTube as a Python package with all dependencies automatically handled.
-
-### Option 2: Manual Installation
+### Option 3: Manual Installation
 
 1. Clone or download the repository.
 2. Ensure you have Python 3.6+ installed.
