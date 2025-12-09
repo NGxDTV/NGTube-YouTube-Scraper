@@ -178,12 +178,42 @@ See the `examples/` directory for complete working examples:
 - `basic_usage.py`: Extract video metadata and comments
 - `batch_processing.py`: Process multiple videos
 - `channel_usage.py`: Extract channel profile data
+- `WEB/`: Web-based demo application showcasing all features
 
 Run any example:
 
 ```bash
 python examples/basic_usage.py
 ```
+
+### Web Demo
+
+For an interactive web interface:
+
+```bash
+cd examples/WEB
+pip install flask
+python app.py
+```
+
+Then open http://127.0.0.1:5000 in your browser to try all NGTube features through a user-friendly interface.
+
+#### Screenshots
+
+![Web Panel Home](images/web_panel_home.png)
+*Figure: Home page of the web panel with all tabs*
+
+![Video Tab](images/video_tab.png)
+*Figure: Video tab for metadata extraction*
+
+![Comments Tab](images/comments_tab.png)
+*Figure: Comments tab for comment extraction*
+
+![Channel Tab](images/channel_tab.png)
+*Figure: Channel tab for channel profile extraction*
+
+![Search Tab](images/search_tab.png)
+*Figure: Search tab for YouTube search*
 
 ## API Reference
 
