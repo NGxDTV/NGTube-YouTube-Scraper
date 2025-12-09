@@ -8,6 +8,14 @@ from ..core import YouTubeCore
 import requests
 import json
 
+class SearchFilters:
+    """
+    Predefined search filters for YouTube search.
+    """
+    CHANNELS = "EgIQAg%3D%3D"
+    VIDEOS_TODAY = "EgIIAg%3D%3D"
+    SORT_BY_DATE = "CAI%3D"
+
 class Search:
     """
     Class to perform YouTube searches and extract results.
@@ -19,16 +27,19 @@ class Search:
         estimated_results (int): Estimated total results.
     """
 
-    def __init__(self, query: str, max_results: int = 50):
+    def __init__(self, query: str, max_results: int = 50, filter: str = ""):
         """
         Initialize the Search with a query.
 
         Args:
             query (str): The search query.
             max_results (int): Maximum number of results to load.
+            filter (str): Search filter, use SearchFilters constants or custom params string.
         """
         self.query = query
         self.max_results = max_results
+        self.filter = filter
+        self.params = filter if isinstance(filter, str) else (filter.value if hasattr(filter, 'value') else str(filter))
         self.results = []
         self.estimated_results = 0
         self.url = "https://www.youtube.com/youtubei/v1/search?prettyPrint=false"
@@ -113,6 +124,8 @@ class Search:
             },
             "query": query
         }
+        if self.params:
+            self.payload["params"] = self.params
         self.headers = {
             "Content-Type": "application/json",
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 OPR/124.0.0.0"
@@ -130,10 +143,10 @@ class Search:
             if response.status_code != 200:
                 break
             data = response.json()
-            videos, estimated, cont = self._parse_results(data)
+            items, estimated, cont = self._parse_results(data)
             if not self.estimated_results:
                 self.estimated_results = estimated
-            self.results.extend(videos)
+            self.results.extend(items)
             continuation = cont
             if not continuation:
                 break
@@ -144,13 +157,14 @@ class Search:
         estimated_results = int(data.get("estimatedResults", "0"))
         contents = data.get("contents", {}).get("twoColumnSearchResultsRenderer", {}).get("primaryContents", {}).get("sectionListRenderer", {}).get("contents", [])
         continuation = None
-        videos = []
+        items = []
         for item in contents:
             if "itemSectionRenderer" in item:
                 for content in item["itemSectionRenderer"]["contents"]:
                     if "videoRenderer" in content:
                         video = content["videoRenderer"]
                         video_info = {
+                            "type": "video",
                             "videoId": video.get("videoId"),
                             "title": video.get("title", {}).get("runs", [{}])[0].get("text"),
                             "channel": video.get("longBylineText", {}).get("runs", [{}])[0].get("text"),
@@ -159,7 +173,18 @@ class Search:
                             "viewCount": video.get("viewCountText", {}).get("simpleText"),
                             "thumbnail": video.get("thumbnail", {}).get("thumbnails", [{}])[0].get("url")
                         }
-                        videos.append(video_info)
+                        items.append(video_info)
+                    elif "channelRenderer" in content:
+                        channel = content["channelRenderer"]
+                        channel_info = {
+                            "type": "channel",
+                            "channelId": channel.get("channelId"),
+                            "title": channel.get("title", {}).get("simpleText"),
+                            "description": " ".join([run.get("text", "") for run in channel.get("descriptionSnippet", {}).get("runs", [])]),
+                            "subscriberCount": channel.get("videoCountText", {}).get("simpleText"),  # Note: This seems to be videoCount in the data
+                            "thumbnail": channel.get("thumbnail", {}).get("thumbnails", [{}])[0].get("url")
+                        }
+                        items.append(channel_info)
             elif "continuationItemRenderer" in item:
                 continuation = item["continuationItemRenderer"]["continuationEndpoint"]["continuationCommand"]["token"]
         # Check for continuation in onResponseReceivedCommands
@@ -172,6 +197,7 @@ class Search:
                                 if "videoRenderer" in content:
                                     video = content["videoRenderer"]
                                     video_info = {
+                                        "type": "video",
                                         "videoId": video.get("videoId"),
                                         "title": video.get("title", {}).get("runs", [{}])[0].get("text"),
                                         "channel": video.get("longBylineText", {}).get("runs", [{}])[0].get("text"),
@@ -180,21 +206,34 @@ class Search:
                                         "viewCount": video.get("viewCountText", {}).get("simpleText"),
                                         "thumbnail": video.get("thumbnail", {}).get("thumbnails", [{}])[0].get("url")
                                     }
-                                    videos.append(video_info)
+                                    items.append(video_info)
+                                elif "channelRenderer" in content:
+                                    channel = content["channelRenderer"]
+                                    channel_info = {
+                                        "type": "channel",
+                                        "channelId": channel.get("channelId"),
+                                        "title": channel.get("title", {}).get("simpleText"),
+                                        "description": " ".join([run.get("text", "") for run in channel.get("descriptionSnippet", {}).get("runs", [])]),
+                                        "subscriberCount": channel.get("videoCountText", {}).get("simpleText"),
+                                        "thumbnail": channel.get("thumbnail", {}).get("thumbnails", [{}])[0].get("url")
+                                    }
+                                    items.append(channel_info)
                         elif "continuationItemRenderer" in item:
                             continuation = item["continuationItemRenderer"]["continuationEndpoint"]["continuationCommand"]["token"]
-        return videos, estimated_results, continuation
+        return items, estimated_results, continuation
 
     def get_results(self):
         """
         Get the search results.
 
         Returns:
-            dict: Dictionary with query, estimated_results, loaded_videos, and videos list.
+            dict: Dictionary with query, filter, params, estimated_results, loaded_items, and items list.
         """
         return {
             "query": self.query,
+            "filter": self.filter,
+            "params": self.params,
             "estimated_results": self.estimated_results,
-            "loaded_videos": len(self.results),
-            "videos": self.results
+            "loaded_items": len(self.results),
+            "items": self.results
         }

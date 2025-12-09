@@ -8,7 +8,7 @@ from .core import YouTubeCore
 from .video.video import Video
 from .comments.comments import Comments
 from .channel.channel import Channel
-from .search.search import Search
+from .search.search import Search, SearchFilters
 
 __version__ = "1.0.0"
 __author__ = "NGTube Team"

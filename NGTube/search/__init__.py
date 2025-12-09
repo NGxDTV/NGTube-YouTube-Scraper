@@ -2,6 +2,6 @@
 NGTube Search Module
 """
 
-from .search import Search
+from .search import Search, SearchFilters
 
-__all__ = ["Search"]
+__all__ = ["Search", "SearchFilters"]
