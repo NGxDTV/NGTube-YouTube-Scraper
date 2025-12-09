@@ -25,16 +25,19 @@ def extract_number(text):
         multiplier = 1000
         text = text.replace('K', '').strip()
     cleaned = re.sub(r'[^\d.,]', '', text)
-    if '.' in cleaned and ',' not in cleaned:
-        num_str = cleaned.replace('.', '')
-    elif ',' in cleaned and '.' not in cleaned:
-        num_str = cleaned.replace(',', '.')
-    elif ',' in cleaned and '.' in cleaned:
-        num_str = cleaned.replace('.', '').replace(',', '.')
+    if multiplier == 1:
+        # No multiplier, treat as integer with thousand separators
+        cleaned = cleaned.replace(',', '')
     else:
-        num_str = cleaned
+        # With multiplier, handle decimal
+        if '.' in cleaned and ',' not in cleaned:
+            pass  # already good
+        elif ',' in cleaned and '.' not in cleaned:
+            cleaned = cleaned.replace(',', '.')
+        elif ',' in cleaned and '.' in cleaned:
+            cleaned = cleaned.replace('.', '').replace(',', '.')
     try:
-        num = float(num_str)
+        num = float(cleaned)
         return int(num * multiplier)
     except Exception:
         return 0

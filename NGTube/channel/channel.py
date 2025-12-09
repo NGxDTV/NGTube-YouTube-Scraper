@@ -4,6 +4,7 @@ NGTube Channel Module
 This module provides functionality to extract channel metadata and videos from YouTube channels.
 """
 
+import re
 from typing import Union
 from ..core import YouTubeCore
 from .. import utils
@@ -41,17 +42,17 @@ class Channel:
         # Extract channel ID from URL
         channel_id = self._extract_channel_id()
 
-        # Payload for Featured Tab
-        payload_featured = self._get_payload_featured(channel_id)
+        # Payload for Home Tab (to get profile data)
+        payload_home = self._get_payload_home(channel_id)
 
-        # Make API request for featured data
+        # Make API request for home tab
         try:
-            data_featured = self.core.make_api_request(api_url, payload_featured)
-        except Exception as e:
-            raise Exception(f"Failed to fetch featured data: {e}")
-
-        # Extract profile data from featured
-        self._extract_profile_data(data_featured)
+            data_home = self.core.make_api_request(api_url, payload_home)
+            # Extract profile data from home response
+            self._extract_profile_data(data_home)
+        except Exception:
+            # If home fails, try videos response for profile data
+            pass
 
         # Payload for Videos Tab
         payload_videos = self._get_payload_videos(channel_id)
@@ -65,8 +66,9 @@ class Channel:
         # Extract videos
         self._extract_videos(data_videos, max_videos)
 
-        # Extract additional profile data from videos response
-        self._extract_profile_data(data_videos)
+        # If profile data not extracted from home, try from videos
+        if not self.data.get('title'):
+            self._extract_profile_data(data_videos)
 
         # Extract numbers
         self._extract_numbers()
@@ -74,72 +76,83 @@ class Channel:
         return self.data
 
     def _extract_channel_id(self) -> str:
-        """Extract channel ID from URL."""
+        """Extract channel ID from URL by fetching the channel page."""
+        if '/channel/' in self.url:
+            # Direct channel ID in URL
+            return self.url.split('/channel/')[1].split('/')[0].split('?')[0]
+        
         if '@' in self.url:
-            username = self.url.split('@')[1].split('/')[0]
-            # Map known @handles to their channel IDs
-            handle_to_id = {
-                'HandOfUncut': 'UCCJ-NJtqLQRxuaxHZA9q6zg'
-            }
-            if username in handle_to_id:
-                return handle_to_id[username]
-            # For unknown handles, try to use the username directly
-            return username
-        elif '/channel/' in self.url:
-            return self.url.split('/channel/')[1].split('/')[0]
-        else:
-            raise ValueError("Invalid channel URL format")
+            # For @handles, fetch the page to get the UC-ID
+            try:
+                html = self.core.fetch_html()
+                # Try to find channel ID in the HTML
+                # Pattern 1: browseId in ytInitialData (most reliable)
+                match = re.search(r'"browseId"\s*:\s*"(UC[a-zA-Z0-9_-]+)"', html)
+                if match:
+                    return match.group(1)
+                
+                # Pattern 2: "channelId":"UC..."
+                match = re.search(r'"channelId"\s*:\s*"(UC[a-zA-Z0-9_-]+)"', html)
+                if match:
+                    return match.group(1)
+                
+                # Pattern 3: "externalId":"UC..."
+                match = re.search(r'"externalId"\s*:\s*"(UC[a-zA-Z0-9_-]+)"', html)
+                if match:
+                    return match.group(1)
+                
+                # Pattern 4: /channel/UC... in canonical URL
+                match = re.search(r'/channel/(UC[a-zA-Z0-9_-]+)', html)
+                if match:
+                    return match.group(1)
+                    
+                raise ValueError("Could not find channel ID in page")
+                
+            except Exception as e:
+                raise ValueError(f"Failed to extract channel ID: {e}")
+        
+        # For other formats, fetch the page to get the real channel ID
+        try:
+            html = self.core.fetch_html()
+            
+            # Try to find channel ID in the HTML
+            # Pattern 1: browseId in ytInitialData (most reliable)
+            match = re.search(r'"browseId"\s*:\s*"(UC[a-zA-Z0-9_-]+)"', html)
+            if match:
+                return match.group(1)
+            
+            # Pattern 2: "channelId":"UC..."
+            match = re.search(r'"channelId"\s*:\s*"(UC[a-zA-Z0-9_-]+)"', html)
+            if match:
+                return match.group(1)
+            
+            # Pattern 3: "externalId":"UC..."
+            match = re.search(r'"externalId"\s*:\s*"(UC[a-zA-Z0-9_-]+)"', html)
+            if match:
+                return match.group(1)
+            
+            # Pattern 4: /channel/UC... in canonical URL
+            match = re.search(r'/channel/(UC[a-zA-Z0-9_-]+)', html)
+            if match:
+                return match.group(1)
+                
+            raise ValueError("Could not find channel ID in page")
+            
+        except Exception as e:
+            raise ValueError(f"Failed to extract channel ID: {e}")
 
-    def _get_payload_featured(self, channel_id: str) -> dict:
-        """Get payload for featured tab."""
+    def _get_payload_home(self, channel_id: str) -> dict:
+        """Get payload for home tab."""
         return {
             "context": {
                 "client": {
-                    "hl": "de",
-                    "gl": "DE",
-                    "remoteHost": "2001:9e8:5b95:d300:259a:3c08:df9e:b87b",
-                    "deviceMake": "",
-                    "deviceModel": "",
-                    "visitorData": "CgtoOEhOakxyRkNFYyiczeHJBjIKCgJERRIEEgAgF2LfAgrcAjE0LllUPUwwOGlIVEVUaHhvVXhiWWF2Rlo0OFhMRms0cFBpOVIwZFFQZDM4NGpsWnltU2t3ODJ5TjFaTFFwUWNwemV2NHhiSXJIUENxU2ozSWZOczJuN1M5d01WS2E2R3ZwNjlvZWRyLVBaclRKYnZyUGU5WkNXRERkd0VFbGJod1E3akg0TWNSTnk4eERqVThvWTdXNkNOODJUZU01UnlvQThrVDNPM2g1MUhWaUNiTFdFRmhOeGxmZEZtMUZ6dFlrNENaUnZMR1Y2Z2N4cC1naDRVTnFIWUl6b3BFS2ZJX1BMQUIwbzJkeDdXLU4yWTZVVFpGcFVrMndmZkdEbjIzX1ZKYkVGaHNmTXVKT1I4RUhOVG1uZUxaNlllOTJXLVNvLVo2b3RKWXE4ZXRqYWZXTTFHOXdFUHJHVmJUaUFtZW9PUWVBZVkxU2hlaEZ5ekhMODdhQXU4cS01UQ",
-                    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 OPR/124.0.0.0,gzip(gfe)",
+                    "hl": "en",
+                    "gl": "US",
                     "clientName": "WEB",
-                    "clientVersion": "2.20251207.11.00",
-                    "osName": "Windows",
-                    "osVersion": "10.0",
-                    "originalUrl": self.url,
-                    "platform": "DESKTOP",
-                    "clientFormFactor": "UNKNOWN_FORM_FACTOR",
-                    "windowWidthPoints": 1875,
-                    "configInfo": {
-                        "appInstallData": "CJzN4ckGEJbbzxwQwKrQHBCu1s8cEImwzhwQovvPHBD8ss4cEMT0zxwQ4M2xBRC8s4ATEIv3zxwQ5ofQHBCd0LAFEL2u0BwQyPfPHBC36v4SEJTyzxwQvKTQHBDi1K4FEPKd0BwQsaLQHBC9tq4FEPKz0BwQppqwBRDm4M8cEIiHsAUQ47jPHBD2q7AFENG90BwQzdGxBRDLstAcEIKPzxwQvZmwBRDzs4ATENPhrwUQzN-uBRCRjP8SEJX3zxwQ5aTQHBCTg9AcELjkzhwQndfPHBCzkM8cEIOs0BwQudnOHBDevM4cEJT-sAUQ2vfOHBC72c4cENiW0BwQzrPQHBCJ6K4FEPC00BwQjOnPHBCZudAcEIeszhwQ2q7QHBDDqtAcEMvRsQUQg57QHBCsrNAcEPeJ0BwQj7nQHBC7rtAcEIeD0BwQlJmAExDBj9AcEIiT0BwQw5HQHBDM688cEIHNzhwQyfevBRC9irAFEJO20BwQjbDQHBCopdAcEJmNsQUQ0eDPHBD01c4cEJWv0BwQ-b6AExDildAcKnRDQU1TVVJWSy1acS1ETGlVRW9nQzlnU3FBb1BPNWd2d3NSS0hUREtnckFRRHk3NEYtam41Z2dhZ0JxSXVfQ2FtQV9GUHpnX3VYSUlQNmlmMkQ0VVU0aVB1blFXTUVKd3ZWTGN2NlJPZlM2dU41UjZkQnc9PTAA",
-                        "coldConfigData": "CJzN4ckGEOy6rQUQxIWuBRC9tq4FEOLUrgUQvYqwBRCNzLAFEJ3QsAUQz9KwBRDM9rAFEOP4sAUQr6fOHBD8ss4cEPTVzhwQ47jPHBD4xs8cENrTzxwQndfPHBCf188cEMfazxwQsODPHBDP4M8cEOXnzxwQ5-fPHBCTg9AcEIiG0BwQ5ofQHBD3idAcEM2L0BwQ_pPQHBCTldAcEOKV0BwQqpzQHBC8pNAcELSo0BwQwKrQHBDDqtAcEJ2s0BwQzqzQHBC7rtAcEL2u0BwQjbDQHBCtstAcEMuy0BwQ8LTQHBCTttAcEJm50BwQzrnQHBD7utAcEJW70BwQn73QHBCuvdAcEMW90BwaMkFPakZveDBmMnVCVFhJaWxBLVpDWklyMWRLeUlOa3J3UXFKVzVUOVJhVlZfa0tVdXpBIjJBT2pGb3gzWGw2Mzk2MXhIYmhoR3cyeTBRcFk1WDNScFI5VjVfRElVaUdMVTdfOVhqUSqYAUNBTVNiQTB0dU4yM0FxUVpseC1mVDVtU21oRDdGbzAyX2lPbkRjZ0FyQXhxTkowV3FBU2hES2dDMlJldURhc1BGVG1ac2JjZmhhUUZrWndGNGRzQno4SUFqNmNHX2RRR01zLUFCZG1rQmdPaXNnWEtTd2F3YjRjRHhnbnpBNnFJQnBSU3lubkxTZ1NTdmdiS2RZMXNCUT09",
-                        "coldHashData": "CJzN4ckGEhMxMTIwNzUxNjc2MDk1NDAyMzUxGJzN4ckGMjJBT2pGb3gwZjJ1QlRYSWlsQS1aQ1pJcjFkS3lJTmtyd1FxSlc1VDlSYVZWX2tLVXV6QToyQU9qRm94M1hsNjM5NjF4SGJoaEd3MnkwUXBZNVgzUnBSOVY1X0RJVWlHTFU3XzlYalFCRENBTVNMdzBXb3RmNkZhN0JCcE5Oc3hhbFJvSU55d1lWSGQzUHdnemk5Z19jcWVZTDJNMEo4NUFFc2FvVzZRNjNCdU16"
-                    },
-                    "screenDensityFloat": 1,
-                    "userInterfaceTheme": "USER_INTERFACE_THEME_DARK",
-                    "timeZone": "Europe/Berlin",
-                    "browserName": "Opera",
-                    "browserVersion": "124.0.0.0",
-                    "acceptHeader": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-                    "deviceExperimentId": "ChxOelU0TVRreU1qYzVNekF4TmpNM01ERTJOUT09EJzN4ckGGJzN4ckG",
-                    "rolloutToken": "CKrC-PrFiJv-lAEQssHcioHCjQMY8ejh9vCwkQM=",
-                    "screenWidthPoints": 1875,
-                    "screenHeightPoints": 923,
-                    "screenPixelDensity": 1,
-                    "utcOffsetMinutes": 60,
-                    "connectionType": "CONN_CELLULAR_4G",
-                    "memoryTotalKbytes": "8000000",
-                    "mainAppWebInfo": {
-                        "graftUrl": self.url,
-                        "pwaInstallabilityStatus": "PWA_INSTALLABILITY_STATUS_UNKNOWN",
-                        "webDisplayMode": "WEB_DISPLAY_MODE_BROWSER",
-                        "isWebNativeShareAvailable": True
-                    },
-                    "clientScreen": "ADUNIT"
+                    "clientVersion": "2.20230801.01.00"
                 }
             },
-            "browseId": channel_id,
-            "params": "EghmZWF0dXJlZPIGBAoCMgA%3D"
+            "browseId": channel_id
         }
 
     def _get_payload_videos(self, channel_id: str) -> dict:
@@ -147,47 +160,10 @@ class Channel:
         return {
             "context": {
                 "client": {
-                    "hl": "de",
-                    "gl": "DE",
-                    "remoteHost": "2001:9e8:5b95:d300:259a:3c08:df9e:b87b",
-                    "deviceMake": "",
-                    "deviceModel": "",
-                    "visitorData": "CgtoOEhOakxyRkNFYyiczeHJBjIKCgJERRIEEgAgF2LfAgrcAjE0LllUPUwwOGlIVEVUaHhvVXhiWWF2Rlo0OFhMRms0cFBpOVIwZFFQZDM4NGpsWnltU2t3ODJ5TjFaTFFwUWNwemV2NHhiSXJIUENxU2ozSWZOczJuN1M5d01WS2E2R3ZwNjlvZWRyLVBaclRKYnZyUGU5WkNXRERkd0VFbGJod1E3akg0TWNSTnk4eERqVThvWTdXNkNOODJUZU01UnlvQThrVDNPM2g1MUhWaUNiTFdFRmhOeGxmZEZtMUZ6dFlrNENaUnZMR1Y2Z2N4cC1naDRVTnFIWUl6b3BFS2ZJX1BMQUIwbzJkeDdXLU4yWTZVVFpGcFVrMndmZkdEbjIzX1ZKYkVGaHNmTXVKT1I4RUhOVG1uZUxaNlllOTJXLVNvLVo2b3RKWXE4ZXRqYWZXTTFHOXdFUHJHVmJUaUFtZW9PUWVBZVkxU2hlaEZ5ekhMODdhQXU4cS01UQ",
-                    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 OPR/124.0.0.0,gzip(gfe)",
+                    "hl": "en",
+                    "gl": "US",
                     "clientName": "WEB",
-                    "clientVersion": "2.20251207.11.00",
-                    "osName": "Windows",
-                    "osVersion": "10.0",
-                    "originalUrl": self.url,
-                    "platform": "DESKTOP",
-                    "clientFormFactor": "UNKNOWN_FORM_FACTOR",
-                    "windowWidthPoints": 1875,
-                    "configInfo": {
-                        "appInstallData": "CJzN4ckGEJbbzxwQwKrQHBCu1s8cEImwzhwQovvPHBD8ss4cEMT0zxwQ4M2xBRC8s4ATEIv3zxwQ5ofQHBCd0LAFEL2u0BwQyPfPHBC36v4SEJTyzxwQvKTQHBDi1K4FEPKd0BwQsaLQHBC9tq4FEPKz0BwQppqwBRDm4M8cEIiHsAUQ47jPHBD2q7AFENG90BwQzdGxBRDLstAcEIKPzxwQvZmwBRDzs4ATENPhrwUQzN-uBRCRjP8SEJX3zxwQ5aTQHBCTg9AcELjkzhwQndfPHBCzkM8cEIOs0BwQudnOHBDevM4cEJT-sAUQ2vfOHBC72c4cENiW0BwQzrPQHBCJ6K4FEPC00BwQjOnPHBCZudAcEIeszhwQ2q7QHBDDqtAcEMvRsQUQg57QHBCsrNAcEPeJ0BwQj7nQHBC7rtAcEIeD0BwQlJmAExDBj9AcEIiT0BwQw5HQHBDM688cEIHNzhwQyfevBRC9irAFEJO20BwQjbDQHBCopdAcEJmNsQUQ0eDPHBD01c4cEJWv0BwQ-b6AExDildAcKnRDQU1TVVJWSy1acS1ETGlVRW9nQzlnU3FBb1BPNWd2d3NSS0hUREtnckFRRHk3NEYtam41Z2dhZ0JxSXVfQ2FtQV9GUHpnX3VYSUlQNmlmMkQ0VVU0aVB1blFXTUVKd3ZWTGN2NlJPZlM2dU41UjZkQnc9PTAA",
-                        "coldConfigData": "CJzN4ckGEOy6rQUQxIWuBRC9tq4FEOLUrgUQvYqwBRCNzLAFEJ3QsAUQz9KwBRDM9rAFEOP4sAUQr6fOHBD8ss4cEPTVzhwQ47jPHBD4xs8cENrTzxwQndfPHBCf188cEMfazxwQsODPHBDP4M8cEOXnzxwQ5-fPHBCTg9AcEIiG0BwQ5ofQHBD3idAcEM2L0BwQ_pPQHBCTldAcEOKV0BwQqpzQHBC8pNAcELSo0BwQwKrQHBDDqtAcEJ2s0BwQzqzQHBC7rtAcEL2u0BwQjbDQHBCtstAcEMuy0BwQ8LTQHBCTttAcEJm50BwQzrnQHBD7utAcEJW70BwQn73QHBCuvdAcEMW90BwaMkFPakZveDBmMnVCVFhJaWxBLVpDWklyMWRLeUlOa3J3UXFKVzVUOVJhVlZfa0tVdXpBIjJBT2pGb3gzWGw2Mzk2MXhIYmhoR3cyeTBRcFk1WDNScFI5VjVfRElVaUdMVTdfOVhqUSqYAUNBTVNiQTB0dU4yM0FxUVpseC1mVDVtU21oRDdGbzAyX2lPbkRjZ0FyQXhxTkowV3FBU2hES2dDMlJldURhc1BGVG1ac2JjZmhhUUZrWndGNGRzQno4SUFqNmNHX2RRR01zLUFCZG1rQmdPaXNnWEtTd2F3YjRjRHhnbnpBNnFJQnBSU3lubkxTZ1NTdmdiS2RZMXNCUT09",
-                        "coldHashData": "CJzN4ckGEhMxMTIwNzUxNjc2MDk1NDAyMzUxGJzN4ckGMjJBT2pGb3gwZjJ1QlRYSWlsQS1aQ1pJcjFkS3lJTmtyd1FxSlc1VDlSYVZWX2tLVXV6QToyQU9qRm94M1hsNjM5NjF4SGJoaEd3MnkwUXBZNVgzUnBSOVY1X0RJVWlHTFU3XzlYalFCRENBTVNMdzBXb3RmNkZhN0JCcE5Oc3hhbFJvSU55d1lWSGQzUHdnemk5Z19jcWVZTDJNMEo4NUFFc2FvVzZRNjNCdU16"
-                    },
-                    "screenDensityFloat": 1,
-                    "userInterfaceTheme": "USER_INTERFACE_THEME_DARK",
-                    "timeZone": "Europe/Berlin",
-                    "browserName": "Opera",
-                    "browserVersion": "124.0.0.0",
-                    "acceptHeader": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-                    "deviceExperimentId": "ChxOelU0TVRreU1qYzVNekF4TmpNM01ERTJOUT09EJzN4ckGGJzN4ckG",
-                    "rolloutToken": "CKrC-PrFiJv-lAEQssHcioHCjQMY8ejh9vCwkQM=",
-                    "screenWidthPoints": 1875,
-                    "screenHeightPoints": 923,
-                    "screenPixelDensity": 1,
-                    "utcOffsetMinutes": 60,
-                    "connectionType": "CONN_CELLULAR_4G",
-                    "memoryTotalKbytes": "8000000",
-                    "mainAppWebInfo": {
-                        "graftUrl": self.url,
-                        "pwaInstallabilityStatus": "PWA_INSTALLABILITY_STATUS_UNKNOWN",
-                        "webDisplayMode": "WEB_DISPLAY_MODE_BROWSER",
-                        "isWebNativeShareAvailable": True
-                    },
-                    "clientScreen": "ADUNIT"
+                    "clientVersion": "2.20230801.01.00"
                 }
             },
             "browseId": channel_id,
@@ -208,12 +184,27 @@ class Channel:
                     self.data['isFamilySafe'] = cmr.get('isFamilySafe', False)
                     self.data['links'] = utils.extract_links(self.data.get('description', ''))
                     return True
+                if 'channelHeaderRenderer' in obj:
+                    chr = obj['channelHeaderRenderer']
+                    if 'subscriberCountText' in chr and 'simpleText' in chr['subscriberCountText']:
+                        self.data['subscriberCountText'] = chr['subscriberCountText']['simpleText']
+                    if 'videosCountText' in chr:
+                        vct = chr['videosCountText']
+                        if 'simpleText' in vct:
+                            self.data['videoCountText'] = vct['simpleText']
+                        elif 'runs' in vct and vct['runs']:
+                            self.data['videoCountText'] = vct['runs'][0].get('text', '')
+                    return True
+                if 'videoCountText' in obj:
+                    vct = obj['videoCountText']
+                    if 'simpleText' in vct:
+                        self.data['videoCountText'] = vct['simpleText']
+                    elif 'runs' in vct and vct['runs']:
+                        self.data['videoCountText'] = vct['runs'][0].get('text', '')
                 if 'subscriberCountText' in obj and 'simpleText' in obj['subscriberCountText']:
                     self.data['subscriberCountText'] = obj['subscriberCountText']['simpleText']
                 if 'viewCountText' in obj and 'simpleText' in obj['viewCountText']:
                     self.data['viewCountText'] = obj['viewCountText']['simpleText']
-                if 'videoCountText' in obj and 'simpleText' in obj['videoCountText']:
-                    self.data['videoCountText'] = obj['videoCountText']['simpleText']
                 if 'channelVideoPlayerRenderer' in obj:
                     cvpr = obj['channelVideoPlayerRenderer']
                     video = {
@@ -257,47 +248,10 @@ class Channel:
             payload_continuation = {
                 "context": {
                     "client": {
-                        "hl": "de",
-                        "gl": "DE",
-                        "remoteHost": "2001:9e8:5b95:d300:259a:3c08:df9e:b87b",
-                        "deviceMake": "",
-                        "deviceModel": "",
-                        "visitorData": "CgtoOEhOakxyRkNFYyiczeHJBjIKCgJERRIEEgAgF2LfAgrcAjE0LllUPUwwOGlIVEVUaHhvVXhiWWF2Rlo0OFhMRms0cFBpOVIwZFFQZDM4NGpsWnltU2t3ODJ5TjFaTFFwUWNwemV2NHhiSXJIUENxU2ozSWZOczJuN1M5d01WS2E2R3ZwNjlvZWRyLVBaclRKYnZyUGU5WkNXRERkd0VFbGJod1E3akg0TWNSTnk4eERqVThvWTdXNkNOODJUZU01UnlvQThrVDNPM2g1MUhWaUNiTFdFRmhOeGxmZEZtMUZ6dFlrNENaUnZMR1Y2Z2N4cC1naDRVTnFIWUl6b3BFS2ZJX1BMQUIwbzJkeDdXLU4yWTZVVFpGcFVrMndmZkdEbjIzX1ZKYkVGaHNmTXVKT1I4RUhOVG1uZUxaNlllOTJXLVNvLVo2b3RKWXE4ZXRqYWZXTTFHOXdFUHJHVmJUaUFtZW9PUWVBZVkxU2hlaEZ5ekhMODdhQXU4cS01UQ",
-                        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 OPR/124.0.0.0,gzip(gfe)",
+                        "hl": "en",
+                        "gl": "US",
                         "clientName": "WEB",
-                        "clientVersion": "2.20251207.11.00",
-                        "osName": "Windows",
-                        "osVersion": "10.0",
-                        "originalUrl": self.url,
-                        "platform": "DESKTOP",
-                        "clientFormFactor": "UNKNOWN_FORM_FACTOR",
-                        "windowWidthPoints": 1875,
-                        "configInfo": {
-                            "appInstallData": "CJzN4ckGEJbbzxwQwKrQHBCu1s8cEImwzhwQovvPHBD8ss4cEMT0zxwQ4M2xBRC8s4ATEIv3zxwQ5ofQHBCd0LAFEL2u0BwQyPfPHBC36v4SEJTyzxwQvKTQHBDi1K4FEPKd0BwQsaLQHBC9tq4FEPKz0BwQppqwBRDm4M8cEIiHsAUQ47jPHBD2q7AFENG90BwQzdGxBRDLstAcEIKPzxwQvZmwBRDzs4ATENPhrwUQzN-uBRCRjP8SEJX3zxwQ5aTQHBCTg9AcELjkzhwQndfPHBCzkM8cEIOs0BwQudnOHBDevM4cEJT-sAUQ2vfOHBC72c4cENiW0BwQzrPQHBCJ6K4FEPC00BwQjOnPHBCZudAcEIeszhwQ2q7QHBDDqtAcEMvRsQUQg57QHBCsrNAcEPeJ0BwQj7nQHBC7rtAcEIeD0BwQlJmAExDBj9AcEIiT0BwQw5HQHBDM688cEIHNzhwQyfevBRC9irAFEJO20BwQjbDQHBCopdAcEJmNsQUQ0eDPHBD01c4cEJWv0BwQ-b6AExDildAcKnRDQU1TVVJWSy1acS1ETGlVRW9nQzlnU3FBb1BPNWd2d3NSS0hUREtnckFRRHk3NEYtam41Z2dhZ0JxSXVfQ2FtQV9GUHpnX3VYSUlQNmlmMkQ0VVU0aVB1blFXTUVKd3ZWTGN2NlJPZlM2dU41UjZkQnc9PTAA",
-                            "coldConfigData": "CJzN4ckGEOy6rQUQxIWuBRC9tq4FEOLUrgUQvYqwBRCNzLAFEJ3QsAUQz9KwBRDM9rAFEOP4sAUQr6fOHBD8ss4cEPTVzhwQ47jPHBD4xs8cENrTzxwQndfPHBCf188cEMfazxwQsODPHBDP4M8cEOXnzxwQ5-fPHBCTg9AcEIiG0BwQ5ofQHBD3idAcEM2L0BwQ_pPQHBCTldAcEOKV0BwQqpzQHBC8pNAcELSo0BwQwKrQHBDDqtAcEJ2s0BwQzqzQHBC7rtAcEL2u0BwQjbDQHBCtstAcEMuy0BwQ8LTQHBCTttAcEJm50BwQzrnQHBD7utAcEJW70BwQn73QHBCuvdAcEMW90BwaMkFPakZveDBmMnVCVFhJaWxBLVpDWklyMWRLeUlOa3J3UXFKVzVUOVJhVlZfa0tVdXpBIjJBT2pGb3gzWGw2Mzk2MXhIYmhoR3cyeTBRcFk1WDNScFI5VjVfRElVaUdMVTdfOVhqUSqYAUNBTVNiQTB0dU4yM0FxUVpseC1mVDVtU21oRDdGbzAyX2lPbkRjZ0FyQXhxTkowV3FBU2hES2dDMlJldURhc1BGVG1ac2JjZmhhUUZrWndGNGRzQno4SUFqNmNHX2RRR01zLUFCZG1rQmdPaXNnWEtTd2F3YjRjRHhnbnpBNnFJQnBSU3lubkxTZ1NTdmdiS2RZMXNCUT09",
-                            "coldHashData": "CJzN4ckGEhMxMTIwNzUxNjc2MDk1NDAyMzUxGJzN4ckGMjJBT2pGb3gwZjJ1QlRYSWlsQS1aQ1pJcjFkS3lJTmtyd1FxSlc1VDlSYVZWX2tLVXV6QToyQU9qRm94M1hsNjM5NjF4SGJoaEd3MnkwUXBZNVgzUnBSOVY1X0RJVWlHTFU3XzlYalFCRENBTVNMdzBXb3RmNkZhN0JCcE5Oc3hhbFJvSU55d1lWSGQzUHdnemk5Z19jcWVZTDJNMEo4NUFFc2FvVzZRNjNCdU16"
-                        },
-                        "screenDensityFloat": 1,
-                        "userInterfaceTheme": "USER_INTERFACE_THEME_DARK",
-                        "timeZone": "Europe/Berlin",
-                        "browserName": "Opera",
-                        "browserVersion": "124.0.0.0",
-                        "acceptHeader": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-                        "deviceExperimentId": "ChxOelU0TVRreU1qYzVNekF4TmpNM01ERTJOUT09EJzN4ckGGJzN4ckG",
-                        "rolloutToken": "CKrC-PrFiJv-lAEQssHcioHCjQMY8ejh9vCwkQM=",
-                        "screenWidthPoints": 1875,
-                        "screenHeightPoints": 923,
-                        "screenPixelDensity": 1,
-                        "utcOffsetMinutes": 60,
-                        "connectionType": "CONN_CELLULAR_4G",
-                        "memoryTotalKbytes": "8000000",
-                        "mainAppWebInfo": {
-                            "graftUrl": self.url,
-                            "pwaInstallabilityStatus": "PWA_INSTALLABILITY_STATUS_UNKNOWN",
-                            "webDisplayMode": "WEB_DISPLAY_MODE_BROWSER",
-                            "isWebNativeShareAvailable": True
-                        },
-                        "clientScreen": "ADUNIT"
+                        "clientVersion": "2.20241205.01.00"
                     }
                 },
                 "continuation": continuation_token
@@ -314,10 +268,17 @@ class Channel:
             except Exception:
                 break
 
-        # Collect all videos
+        # Collect all videos and deduplicate by videoId
         all_videos = []
+        seen_video_ids = set()
         for data in data_videos_list:
-            all_videos.extend(self._find_videos(data))
+            for video in self._find_videos(data):
+                video_id = video.get('videoId')
+                if video_id and video_id not in seen_video_ids:
+                    seen_video_ids.add(video_id)
+                    all_videos.append(video)
+                elif not video_id:
+                    all_videos.append(video)  # Keep videos without ID
 
         # Limit videos if max_videos is not 'all'
         if max_videos != 'all' and isinstance(max_videos, int):
@@ -330,7 +291,7 @@ class Channel:
         """Find videos in the data structure."""
         videos = []
         if isinstance(obj, dict):
-            # Initial videos
+            # Initial videos - richGridRenderer (continuation)
             if 'richGridRenderer' in obj and 'contents' in obj['richGridRenderer']:
                 for item in obj['richGridRenderer']['contents']:
                     if 'richItemRenderer' in item and 'content' in item['richItemRenderer']:
@@ -357,6 +318,20 @@ class Channel:
                                 'thumbnails': gvr.get('thumbnail', {}).get('thumbnails', [])
                             }
                             videos.append(video)
+            # Initial videos - gridRenderer (first load)
+            if 'gridRenderer' in obj and 'items' in obj['gridRenderer']:
+                for item in obj['gridRenderer']['items']:
+                    if 'gridVideoRenderer' in item:
+                        gvr = item['gridVideoRenderer']
+                        video = {
+                            'videoId': gvr.get('videoId'),
+                            'title': gvr.get('title', {}).get('simpleText', ''),
+                            'publishedTimeText': gvr.get('publishedTimeText', {}).get('simpleText', ''),
+                            'viewCountText': gvr.get('viewCountText', {}).get('simpleText', ''),
+                            'lengthText': gvr.get('thumbnailOverlays', [{}])[0].get('thumbnailOverlayTimeStatusRenderer', {}).get('text', {}).get('simpleText', ''),
+                            'thumbnails': gvr.get('thumbnail', {}).get('thumbnails', [])
+                        }
+                        videos.append(video)
             # Continuation videos
             if 'onResponseReceivedActions' in obj:
                 for action in obj['onResponseReceivedActions']:
