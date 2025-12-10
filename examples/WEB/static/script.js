@@ -213,6 +213,11 @@ function renderChannelInfo(data) {
 
     // Get channel avatar - might be in different places
     const channelAvatar = data.avatar?.[0]?.url || data.thumbnails?.[0]?.url || null;
+    
+    // Get channel banner - use the largest available
+    const channelBanner = data.banner ? data.banner.reduce((best, current) => {
+        return (!best || (current.width * current.height) > (best.width * best.height)) ? current : best;
+    }, null)?.url : null;
 
     // Deduplicate videos by videoId
     const seenIds = new Set();
@@ -331,6 +336,7 @@ function renderChannelInfo(data) {
 
     return `
         <div class="channel-header">
+            ${channelBanner ? `<div class="channel-banner"><img src="${channelBanner}" alt="" onerror="this.parentElement.style.display='none'"></div>` : ''}
             ${channelAvatar ? `<img src="${channelAvatar}" alt="" class="channel-avatar" onerror="this.style.display='none'">` : ''}
             <div class="channel-name">${escapeHtml(data.title || data.channel_name || 'Unknown Channel')}</div>
             ${data.description ? `<div class="channel-description">${escapeHtml(data.description).substring(0, 300)}${data.description.length > 300 ? '...' : ''}</div>` : ''}

@@ -57,8 +57,9 @@ The web interface provides four main sections with a modern dark theme:
 ### Channel Info
 - Enter a YouTube channel URL (supports both /channel/ and @handle formats)
 - Specify maximum number of videos, reels/shorts, and playlists to fetch
-- Get channel profile information, recent videos, reels, and playlists
-- View organized statistics and content in separate sections
+- Get channel profile information including banner image and avatar
+- View recent videos, reels, and playlists in organized sections
+- Display channel statistics and metadata
 
 ### Search
 - Enter search query

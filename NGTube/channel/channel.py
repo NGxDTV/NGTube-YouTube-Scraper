@@ -364,6 +364,8 @@ class Channel:
                     self.data['keywords'] = cmr.get('keywords', '')
                     self.data['isFamilySafe'] = cmr.get('isFamilySafe', False)
                     self.data['links'] = utils.extract_links(self.data.get('description', ''))
+                    if 'avatar' in cmr and 'thumbnails' in cmr['avatar']:
+                        self.data['avatar'] = cmr['avatar']['thumbnails']
                     return True
                 if 'channelHeaderRenderer' in obj:
                     chr = obj['channelHeaderRenderer']
@@ -375,6 +377,33 @@ class Channel:
                             self.data['videoCountText'] = vct['simpleText']
                         elif 'runs' in vct and vct['runs']:
                             self.data['videoCountText'] = vct['runs'][0].get('text', '')
+                    return True
+                if 'c4TabbedHeaderRenderer' in obj:
+                    c4thr = obj['c4TabbedHeaderRenderer']
+                    if 'banner' in c4thr and 'imageBannerViewModel' in c4thr['banner']:
+                        banner_vm = c4thr['banner']['imageBannerViewModel']
+                        if 'image' in banner_vm and 'sources' in banner_vm['image']:
+                            self.data['banner'] = banner_vm['image']['sources']
+                    return True
+                if 'pageHeaderViewModel' in obj:
+                    phvm = obj['pageHeaderViewModel']
+                    if 'banner' in phvm and 'imageBannerViewModel' in phvm['banner']:
+                        banner_vm = phvm['banner']['imageBannerViewModel']
+                        if 'image' in banner_vm and 'sources' in banner_vm['image']:
+                            self.data['banner'] = banner_vm['image']['sources']
+                    # Extract metadata from contentMetadataViewModel
+                    if 'metadata' in phvm and 'contentMetadataViewModel' in phvm['metadata']:
+                        cmvm = phvm['metadata']['contentMetadataViewModel']
+                        if 'metadataRows' in cmvm and isinstance(cmvm['metadataRows'], list):
+                            for row in cmvm['metadataRows']:
+                                if 'metadataParts' in row and isinstance(row['metadataParts'], list):
+                                    for part in row['metadataParts']:
+                                        if 'text' in part and 'content' in part['text']:
+                                            content = part['text']['content']
+                                            if 'subscribers' in content.lower():
+                                                self.data['subscriberCountText'] = content
+                                            elif 'videos' in content.lower() or 'video' in content.lower():
+                                                self.data['videoCountText'] = content
                     return True
                 if 'videoCountText' in obj:
                     vct = obj['videoCountText']
