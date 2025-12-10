@@ -106,12 +106,12 @@ channel = Channel(url)
 profile = channel.extract_profile(max_videos=10)
 
 print("Channel Title:", profile['title'])
-print("Subscribers:", profile['subscribers'])
-print("Videos loaded:", profile['loaded_videos_count'])
+print("Subscribers:", profile['stats']['subscribers'])
+print("Videos loaded:", profile['stats']['loaded_videos_count'])
 
 # Load all videos
 profile_all = channel.extract_profile(max_videos='all')
-print("Total videos:", profile_all['loaded_videos_count'])
+print("Total videos:", profile_all['stats']['loaded_videos_count'])
 ```
 
 ## Detailed Usage
@@ -165,10 +165,11 @@ profile = channel.extract_profile(max_videos='all')
 # - title, description, channel_id, channel_url
 # - keywords, is_family_safe, links
 # - subscriber_count_text, view_count_text, video_count_text
-# - subscribers, total_views, video_count (parsed numbers)
 # - featured_video (dict with videoId, title, description)
 # - videos (list of video dictionaries)
-# - loaded_videos_count
+# - reels (list of reel dictionaries)
+# - playlists (list of playlist dictionaries)
+# - stats (dict containing: subscribers, total_views, video_count, loaded_videos_count, loaded_reels_count, loaded_playlists_count)
 ```
 
 ## Examples
