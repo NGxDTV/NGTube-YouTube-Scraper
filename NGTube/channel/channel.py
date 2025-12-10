@@ -28,6 +28,7 @@ class Channel:
         self.url = url
         self.core = YouTubeCore(url)
         self.data = {}
+        self.visitor_data = self.core.extract_visitor_data(self.core.fetch_html())
 
     def extract_profile(self, max_videos: Union[int, str] = 200) -> dict:
         """
@@ -149,7 +150,8 @@ class Channel:
                     "hl": "en",
                     "gl": "US",
                     "clientName": "WEB",
-                    "clientVersion": "2.20230801.01.00"
+                    "clientVersion": "2.20251208.06.00",
+                    "visitorData": self.visitor_data
                 }
             },
             "browseId": channel_id
@@ -163,7 +165,8 @@ class Channel:
                     "hl": "en",
                     "gl": "US",
                     "clientName": "WEB",
-                    "clientVersion": "2.20230801.01.00"
+                    "clientVersion": "2.20251208.06.00",
+                    "visitorData": self.visitor_data
                 }
             },
             "browseId": channel_id,
@@ -251,7 +254,8 @@ class Channel:
                         "hl": "en",
                         "gl": "US",
                         "clientName": "WEB",
-                        "clientVersion": "2.20241205.01.00"
+                        "clientVersion": "2.20251208.06.00",
+                        "visitorData": self.visitor_data
                     }
                 },
                 "continuation": continuation_token

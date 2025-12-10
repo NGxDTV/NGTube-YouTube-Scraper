@@ -155,6 +155,37 @@ class YouTubeCore:
         else:
             raise Exception("ytInitialPlayerResponse not found in HTML")
 
+    def extract_visitor_data(self, html: str) -> str:
+        """
+        Extract visitorData from HTML.
+
+        Args:
+            html (str): The HTML content.
+
+        Returns:
+            str: The visitorData string.
+        """
+        try:
+            yt_initial_data = self.extract_ytinitialdata(html)
+            def find_visitor_data(obj):
+                if isinstance(obj, dict):
+                    if 'responseContext' in obj and 'visitorData' in obj['responseContext']:
+                        return obj['responseContext']['visitorData']
+                    for v in obj.values():
+                        result = find_visitor_data(v)
+                        if result:
+                            return result
+                elif isinstance(obj, list):
+                    for item in obj:
+                        result = find_visitor_data(item)
+                        if result:
+                            return result
+                return None
+            visitor_data = find_visitor_data(yt_initial_data)
+            return visitor_data or ""
+        except:
+            return ""
+
     def make_api_request(self, endpoint: str, payload: dict) -> dict:
         """
         Make a POST request to YouTube's internal API.

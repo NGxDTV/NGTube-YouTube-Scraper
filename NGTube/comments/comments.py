@@ -28,6 +28,7 @@ class Comments:
         self.core = YouTubeCore(url)
         self.comments = []
         self.top_comments = []
+        self.visitor_data = self.core.extract_visitor_data(self.core.fetch_html())
 
     def extract_initial_comments(self, data: dict):
         """
@@ -157,24 +158,6 @@ class Comments:
         find_continuation(data)
 
         if continuation_token:
-            # Extract visitorData
-            visitor_data = None
-            def find_visitor_data(obj):
-                nonlocal visitor_data
-                if isinstance(obj, dict):
-                    if 'responseContext' in obj and 'visitorData' in obj['responseContext']:
-                        visitor_data = obj['responseContext']['visitorData']
-                        return True
-                    for v in obj.values():
-                        if find_visitor_data(v):
-                            return True
-                elif isinstance(obj, list):
-                    for item in obj:
-                        if find_visitor_data(item):
-                            return True
-                return False
-            find_visitor_data(data)
-
             # Build payload and make API requests
             current_continuation = continuation_token
             max_calls = 10
@@ -185,41 +168,10 @@ class Comments:
                         "client": {
                             "hl": "de",
                             "gl": "DE",
-                            "remoteHost": "2001:9e8:5b95:d300:259a:3c08:df9e:b87b",
-                            "deviceMake": "",
-                            "deviceModel": "",
-                            "visitorData": visitor_data or "",
-                            "userAgent": self.core.headers['User-Agent'],
                             "clientName": "WEB",
-                            "clientVersion": "2.20251207.11.00",
-                            "osName": "Windows",
-                            "osVersion": "10.0",
-                            "originalUrl": self.url,
-                            "platform": "DESKTOP",
-                            "clientFormFactor": "UNKNOWN_FORM_FACTOR",
-                            "windowWidthPoints": 1875,
-                            "configInfo": {"appInstallData": "", "coldConfigData": "", "coldHashData": "", "hotHashData": ""},
-                            "screenDensityFloat": 1,
-                            "userInterfaceTheme": "USER_INTERFACE_THEME_DARK",
-                            "timeZone": "Europe/Berlin",
-                            "browserName": "Opera",
-                            "browserVersion": "124.0.0.0",
-                            "acceptHeader": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-                            "deviceExperimentId": "",
-                            "rolloutToken": "",
-                            "screenWidthPoints": 1875,
-                            "screenHeightPoints": 923,
-                            "screenPixelDensity": 1,
-                            "utcOffsetMinutes": 60,
-                            "connectionType": "CONN_CELLULAR_4G",
-                            "memoryTotalKbytes": "8000000",
-                            "mainAppWebInfo": {"graftUrl": self.url, "pwaInstallabilityStatus": "PWA_INSTALLABILITY_STATUS_UNKNOWN", "webDisplayMode": "WEB_DISPLAY_MODE_BROWSER", "isWebNativeShareAvailable": True},
-                            "clientScreen": "ADUNIT"
-                        },
-                        "user": {"lockedSafetyMode": False},
-                        "request": {"useSsl": True, "internalExperimentFlags": [], "consistencyTokenJars": []},
-                        "clickTracking": {"clickTrackingParams": ""},
-                        "adSignalsInfo": {"params": []}
+                            "clientVersion": "2.20251208.06.00",
+                            "visitorData": self.visitor_data
+                        }
                     },
                     "continuation": current_continuation
                 }
