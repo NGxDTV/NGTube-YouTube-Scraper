@@ -40,6 +40,19 @@ def main():
 
         print(f"\nLoaded Videos Count: {profile.get('loaded_videos_count', 0)}")
 
+        # Extract reels/shorts
+        print("\n3. Extracting channel reels/shorts...")
+        try:
+            reels = channel.extract_reels(max_reels=10)
+            print(f"Reels extracted: {len(reels)}")
+            if reels:
+                print("First 3 reels:")
+                for i, reel in enumerate(reels[:3]):
+                    print(f"  {i+1}. {reel.get('title', 'N/A')} - {reel.get('viewCountText', 'N/A')}")
+            profile['reels'] = reels
+        except Exception as e:
+            print(f"Error extracting reels: {e}")
+
         # Save to file
         with open('channel_profile.json', 'w', encoding='utf-8') as f:
             json.dump(profile, f, indent=2, ensure_ascii=False)
