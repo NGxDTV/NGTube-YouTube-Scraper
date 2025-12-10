@@ -102,12 +102,45 @@ class Channel:
         reels = self._extract_reels_data(data_reels, max_reels)
         return reels
 
+    def extract_playlists(self, max_playlists: Union[int, str] = 200) -> list:
+        """
+        Extract channel playlists.
+
+        Args:
+            max_playlists (int | str): Maximum number of playlists to load. Use 'all' to load all playlists.
+        """
+        # API URL
+        api_url = "https://www.youtube.com/youtubei/v1/browse"
+
+        # Extract channel ID from URL
+        channel_id = self._extract_channel_id()
+
+        # Payload for Playlists Tab
+        payload_playlists = self._get_payload_playlists(channel_id)
+
+        # Make API request for playlists tab
+        try:
+            data_playlists = self.core.make_api_request(api_url, payload_playlists)
+        except Exception as e:
+            raise ValueError(f"Failed to fetch playlists data: {e}")
+
+        # Extract playlists
+        playlists = self._extract_playlists_data(data_playlists, max_playlists)
+        return playlists
+
     def _extract_reels_data(self, data: dict, max_reels: Union[int, str]) -> list:
         """Extract reels data from API response."""
         reels = self._find_reels(data)
         if max_reels != 'all' and isinstance(max_reels, int):
             reels = reels[:max_reels]
         return reels
+
+    def _extract_playlists_data(self, data: dict, max_playlists: Union[int, str]) -> list:
+        """Extract playlists data from API response."""
+        playlists = self._find_playlists(data)
+        if max_playlists != 'all' and isinstance(max_playlists, int):
+            playlists = playlists[:max_playlists]
+        return playlists
 
     def _find_reels(self, obj):
         """Find reels in the data structure."""
@@ -147,7 +180,47 @@ class Channel:
             for item in obj:
                 reels.extend(self._find_reels(item))
         return reels
-        return reels
+
+    def _find_playlists(self, obj):
+        """Find playlists in the data structure."""
+        playlists = []
+        if isinstance(obj, dict):
+            if 'gridRenderer' in obj and 'items' in obj['gridRenderer']:
+                for item in obj['gridRenderer']['items']:
+                    if 'lockupViewModel' in item:
+                        lvm = item['lockupViewModel']
+                        # Extract playlistId from contentId
+                        playlist_id = lvm.get('contentId', '')
+                        # Extract title from metadata.lockupMetadataViewModel.title
+                        title = lvm.get('metadata', {}).get('lockupMetadataViewModel', {}).get('title', {}).get('content', '')
+                        # Extract thumbnails from contentImage.collectionThumbnailViewModel.primaryThumbnail.thumbnailViewModel.image.sources
+                        thumbnails = lvm.get('contentImage', {}).get('collectionThumbnailViewModel', {}).get('primaryThumbnail', {}).get('thumbnailViewModel', {}).get('image', {}).get('sources', [])
+                        # Extract videoCount from thumbnailOverlayBadgeViewModel.thumbnailBadges[0].text
+                        video_count_text = ''
+                        overlays = lvm.get('contentImage', {}).get('collectionThumbnailViewModel', {}).get('primaryThumbnail', {}).get('thumbnailViewModel', {}).get('overlays', [])
+                        for overlay in overlays:
+                            if 'thumbnailOverlayBadgeViewModel' in overlay:
+                                badges = overlay['thumbnailOverlayBadgeViewModel'].get('thumbnailBadges', [])
+                                if badges:
+                                    video_count_text = badges[0].get('thumbnailBadgeViewModel', {}).get('text', '')
+                                    break
+                        # Extract videoCount as int
+                        video_count = utils.extract_number(video_count_text) if video_count_text else 0
+                        playlist = {
+                            'playlistId': playlist_id,
+                            'title': title,
+                            'videoCountText': video_count_text,
+                            'videoCount': video_count,
+                            'thumbnails': thumbnails
+                        }
+                        playlists.append(playlist)
+            # Recurse
+            for v in obj.values():
+                playlists.extend(self._find_playlists(v))
+        elif isinstance(obj, list):
+            for item in obj:
+                playlists.extend(self._find_playlists(item))
+        return playlists
 
     def _extract_channel_id(self) -> str:
         """Extract channel ID from URL by fetching the channel page."""
@@ -260,6 +333,22 @@ class Channel:
             },
             "browseId": channel_id,
             "params": "EgZzaG9ydHPyBgUKA5oBAA%3D%3D"
+        }
+
+    def _get_payload_playlists(self, channel_id: str) -> dict:
+        """Get payload for playlists tab."""
+        return {
+            "context": {
+                "client": {
+                    "hl": "en",
+                    "gl": "US",
+                    "clientName": "WEB",
+                    "clientVersion": "2.20251208.06.00",
+                    "visitorData": self.visitor_data
+                }
+            },
+            "browseId": channel_id,
+            "params": "EglwbGF5bGlzdHPyBgQKAkIA"
         }
 
     def _extract_profile_data(self, data: dict):

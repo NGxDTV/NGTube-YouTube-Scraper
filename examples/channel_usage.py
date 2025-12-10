@@ -53,6 +53,19 @@ def main():
         except Exception as e:
             print(f"Error extracting reels: {e}")
 
+        # Extract playlists
+        print("\n4. Extracting channel playlists...")
+        try:
+            playlists = channel.extract_playlists(max_playlists=10)
+            print(f"Playlists extracted: {len(playlists)}")
+            if playlists:
+                print("First 3 playlists:")
+                for i, playlist in enumerate(playlists[:3]):
+                    print(f"  {i+1}. {playlist.get('title', 'N/A')} - {playlist.get('videoCountText', 'N/A')}")
+            profile['playlists'] = playlists
+        except Exception as e:
+            print(f"Error extracting playlists: {e}")
+
         # Save to file
         with open('channel_profile.json', 'w', encoding='utf-8') as f:
             json.dump(profile, f, indent=2, ensure_ascii=False)
