@@ -38,7 +38,7 @@ def main():
             for i, video in enumerate(videos[:3]):
                 print(f"  {i+1}. {video.get('title', 'N/A')} - {video.get('viewCountText', 'N/A')}")
 
-        print(f"\nLoaded Videos Count: {profile.get('loaded_videos_count', 0)}")
+        print(f"\nLoaded Videos Count: {len(videos)}")
 
         # Extract reels/shorts
         print("\n3. Extracting channel reels/shorts...")
@@ -65,6 +65,20 @@ def main():
             profile['playlists'] = playlists
         except Exception as e:
             print(f"Error extracting playlists: {e}")
+
+        # Organize stats
+        stats = {
+            'subscribers': profile.get('subscribers', 0),
+            'total_views': profile.get('total_views', 0),
+            'video_count': profile.get('video_count', 0),
+            'loaded_videos_count': len(profile.get('videos', [])),
+            'loaded_reels_count': len(profile.get('reels', [])),
+            'loaded_playlists_count': len(profile.get('playlists', []))
+        }
+        profile['stats'] = stats
+        # Remove old stat keys from profile root
+        for key in ['subscribers', 'total_views', 'video_count', 'loaded_videos_count']:
+            profile.pop(key, None)
 
         # Save to file
         with open('channel_profile.json', 'w', encoding='utf-8') as f:
