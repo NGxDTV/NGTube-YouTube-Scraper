@@ -80,7 +80,7 @@ metadata = video.extract_metadata()
 print("Title:", metadata['title'])
 print("Views:", metadata['view_count'])
 print("Likes:", metadata['like_count'])
-print("Duration:", metadata['duration_seconds'], "seconds")
+print("Duration:", metadata['duration_in_seconds'], "seconds")
 ```
 
 ### Extract Comments
@@ -91,7 +91,7 @@ from NGTube import Comments
 url = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 comments = Comments(url)
 
-# Load all comments
+# Load all comments - Dont use it with dQw4w9WgXcQ, this video has 2.400.000 Comments
 comment_data = comments.get_comments()
 print(f"Total comments: {len(comment_data['comments'])}")
 
@@ -108,19 +108,21 @@ for comment in comment_data['comments'][:3]:
 ```python
 from NGTube import Channel
 
-url = "https://www.youtube.com/@HandOfUncut"
+url = "https://www.youtube.com/@RickAstleyYT"
 channel = Channel(url)
 
 # Load first 10 videos
 profile = channel.extract_profile(max_videos=10)
 
+print(profile)
+
 print("Channel Title:", profile['title'])
-print("Subscribers:", profile['stats']['subscribers'])
-print("Videos loaded:", profile['stats']['loaded_videos_count'])
+print("Subscribers:", profile['subscribers'])
+print("Videos loaded:", profile['loaded_videos_count'])
 
 # Load all videos
 profile_all = channel.extract_profile(max_videos='all')
-print("Total videos:", profile_all['stats']['loaded_videos_count'])
+print("Total videos:", profile_all['loaded_videos_count'])
 ```
 
 ### Fetch Random Shorts
@@ -146,7 +148,7 @@ print(f"Comments: {len(comment_data['comments'])}")
 shorts_feed = shorts.fetch_shorts_feed(max_shorts=20)
 print(f"Loaded {len(shorts_feed)} shorts from feed")
 for short in shorts_feed[:3]:
-    print(f"Short: {short['video_id']} - Views: {short.get('view_count', 'N/A')}")
+    print(f"Short: {short['video_id']}")
 ```
 
 ## Detailed Usage
@@ -160,10 +162,35 @@ video = Video("https://www.youtube.com/watch?v=VIDEO_ID")
 metadata = video.extract_metadata()
 
 # Available metadata keys:
-# - title, view_count, like_count, duration_seconds
-# - channel_name, channel_id, subscriber_count
-# - description, tags, category, is_private
-# - upload_date, published_time_text
+video_details = {
+    "title": None,
+    "view_count": None,
+    "duration_in_seconds": None,
+    "description": None,
+    "tags": None,
+    "video_id": None,
+    "channel_id": None,
+    "is_owner_viewing": None,
+    "is_crawlable": None,
+    "thumbnail": {
+        "url": None,
+        "width": None,
+        "height": None
+    },
+    "allow_ratings": None,
+    "author": None,
+    "is_private": None,
+    "is_unplugged_corpus": None,
+    "is_live_content": None,
+    "like_count": None,
+    "channel_name": None,
+    "category": None,
+    "publish_date": None,
+    "upload_date": None,
+    "family_safe": None,
+    "channel_url": None,
+    "subscriber_count": None
+}
 ```
 
 ### Comments Class
@@ -180,12 +207,25 @@ data = comments.get_comments()
 data_limited = comments.get_comments(max_comments=100)
 
 # Returns dictionary with:
-# - 'top_comment': list of top comments
-# - 'comments': list of regular comments
-
-# Each comment contains:
-# - author, text, likeCount, publishedTimeText
-# - authorThumbnail, commentId, replyCount
+comments_data = {
+    "top_comment": {
+        "author": None,
+        "text": None,
+        "dateCreated": None,
+        "url": None,
+        "alternateName": None,
+        "upvoteCount": None
+    },
+    "comments": {
+        "author": None,
+        "text": None,
+        "likeCount": None,
+        "publishedTimeText": None,
+        "authorThumbnail": None,
+        "commentId": None,
+        "replyCount": None
+    }
+}
 ```
 
 ### Channel Class
@@ -193,25 +233,58 @@ data_limited = comments.get_comments(max_comments=100)
 ```python
 from NGTube import Channel
 
-channel = Channel("https://www.youtube.com/@ChannelHandle")
+channel = Channel("https://www.youtube.com/@VIDEO_ID")
 
 # Extract profile with specific number of videos
 profile = channel.extract_profile(max_videos=50)
 
 # Extract profile with all videos (may take time)
-profile = channel.extract_profile(max_videos='all')
+profile = channel.extract_profile(max_videos="all")
 
 # Available profile data:
-# - title, description, channel_id, channel_url
-# - keywords, is_family_safe, links
-# - subscriber_count_text, view_count_text, video_count_text
-# - avatar (list of thumbnail dictionaries with url, width, height)
-# - banner (list of banner image dictionaries with url, width, height)
-# - featured_video (dict with videoId, title, description)
-# - videos (list of video dictionaries)
-# - shorts (list of short dictionaries)
-# - playlists (list of playlist dictionaries)
-# - stats (dict containing: subscribers, total_views, video_count, loaded_videos_count, loaded_shorts_count, loaded_playlists_count)
+channel_data = {
+    "featured_video": {
+        "videoId": None,
+        "title": None,
+        "description": None
+    },
+    "viewCountText": None,
+    "videoCountText": None,
+    "subscriberCountText": None,
+    "banner": {
+        "url": None,
+        "width": None,
+        "height": None
+    },
+    "title": None,
+    "description": None,
+    "channelId": None,
+    "channelUrl": None,
+    "keywords": None,
+    "isFamilySafe": None,
+    "links": None,
+    "avatar": {
+        "url": None,
+        "width": None,
+        "height": None
+    },
+    "videos": {
+        "videoId": None,
+        "title": None,
+        "publishedTimeText": None,
+        "viewCountText": None,
+        "lengthText": None,
+        "thumbnails": {
+            "url": None,
+            "width": None,
+            "height": None
+        }
+    },
+    "loaded_videos_count": None,
+    "subscribers": None,
+    "total_views": None,
+    "video_count": None
+}
 ```
 
 ### Shorts Class
@@ -231,35 +304,64 @@ comment_data = comments_obj.get_comments(max_comments=50)
 # Fetch multiple shorts from the Shorts feed (unlimited)
 shorts_feed = shorts.fetch_shorts_feed(max_shorts=50)
 
+print(short_data)
+print(comment_data)
+print(shorts_feed)
+
 # Available short data:
-# - title: The title of the short
-# - video_id: The YouTube video ID
-# - channel_name: The channel name (with @)
-# - channel_handle: The channel handle (without @)
-# - channel_id: The channel ID
-# - channel_url: The channel URL
-# - sound_metadata: Music/sound information if available
-# - thumbnail: List of thumbnail dictionaries with url, width, height
-# - like_count: Number of likes
-# - view_count: Number of views
-# - comment_count: Number of comments
-# - publish_date: Publication date
-# - sequence_continuation: Token for fetching next short in sequence
+available_short_data = {
+    "channel_name": None,
+    "channel_handle": None,
+    "channel_id": None,
+    "channel_url": None,
+    "title": None,
+    "sound_metadata": None,
+    "comments_continuation": None,
+    "view_count": None,
+    "publish_date": None,
+    "like_count": None,
+    "video_id": None,
+    "thumbnail": {
+        "url": None,
+        "width": None,
+        "height": None
+    },
+    "sequence_continuation": None
+}
 
 # Comments for shorts work exactly like regular videos:
 # Use Comments(f"https://www.youtube.com/watch?v={short_data['video_id']}").get_comments(max_comments=N)
-# - title: The title of the short (may be empty for some)
-# - thumbnail: Thumbnail URL
-# - view_count: Number of views (text format)
-# - published_time: Relative time (e.g., "2 hours ago")
+comments_data = {
+    "top_comment": {
+        "author": None,
+        "text": None,
+        "dateCreated": None,
+        "url": None,
+        "alternateName": None,
+        "upvoteCount": None
+    },
+    "comments": {
+        "author": None,
+        "text": None,
+        "likeCount": None,
+        "publishedTimeText": None,
+        "authorThumbnail": None,
+        "commentId": None,
+        "replyCount": None
+    }
+}
 
-# Comments data structure:
-# - comment_id: Unique comment identifier
-# - content: The comment text
-# - published_time: When the comment was posted
-# - reply_level: Nesting level (0 for top-level)
-# - author: Dict with channel_id, display_name, avatar_thumbnail_url, is_verified, is_creator
-# - toolbar: Dict with like_count and reply_count
+# Available shorts feed data:
+related_videos = {
+    "video_id": None,
+    "title": None,
+    "channel_name": None,
+    "thumbnail": {
+        "url": None,
+        "width": None,
+        "height": None
+    }
+}
 ```
 
 ## Examples
@@ -300,6 +402,9 @@ Then open http://127.0.0.1:5000 in your browser to try all NGTube features throu
 
 ![Comments Tab](images/comments_tab.png)
 *Figure: Comments tab for comment extraction*
+
+![Shorts Tab](images/shorts_tab.png)
+*Figure: Shorts tab for random short videos extraction*
 
 ![Channel Tab](images/channel_tab.png)
 *Figure: Channel tab for channel profile extraction*
@@ -385,90 +490,6 @@ Fetch random shorts from YouTube.
 
 - `extract_number(text: str) -> int`: Extract numbers from text (handles German formatting)
 - `extract_links(text: str) -> list`: Extract URLs from text
-
-## Data Structures
-
-### Video Metadata
-```json
-{
-  "title": "Video Title",
-  "view_count": 299955,
-  "duration_in_seconds": 6994,
-  "description": "Video description...",
-  "tags": ["tag1", "tag2"],
-  "video_id": "VIDEO_ID",
-  "channel_id": "UC...",
-  "is_owner_viewing": false,
-  "is_crawlable": true,
-  "thumbnail": {...},
-  "allow_ratings": true,
-  "author": "Channel Name",
-  "is_private": false,
-  "is_unplugged_corpus": false,
-  "is_live_content": false,
-  "like_count": 8547,
-  "channel_name": "Channel Name",
-  "category": "Gaming",
-  "publish_date": "2023-12-01",
-  "upload_date": "2023-12-01",
-  "family_safe": true,
-  "channel_url": "https://...",
-  "subscriber_count": 1400000
-}
-```
-
-### Comment Data
-```json
-{
-  "top_comment": [...],
-  "comments": [
-    {
-      "author": "Username",
-      "text": "Comment text",
-      "likeCount": 196,
-      "publishedTimeText": "vor 1 Tag",
-      "authorThumbnail": "https://...",
-      "commentId": "...",
-      "replyCount": 1
-    }
-  ]
-}
-```
-
-### Channel Profile
-```json
-{
-  "title": "Channel Title",
-  "description": "Channel description...",
-  "channelId": "UC...",
-  "channelUrl": "https://...",
-  "keywords": "keyword1 keyword2",
-  "isFamilySafe": true,
-  "links": ["https://..."],
-  "subscriberCountText": "159.000 Abonnenten",
-  "viewCountText": "84.770 Aufrufe",
-  "videoCountText": "2583 Videos",
-  "subscribers": 159000,
-  "total_views": 84770,
-  "video_count": 2583,
-  "featured_video": {
-    "videoId": "...",
-    "title": "Featured Video Title",
-    "description": "Featured video description..."
-  },
-  "videos": [
-    {
-      "videoId": "...",
-      "title": "Video Title",
-      "publishedTimeText": "vor 1 Tag",
-      "viewCountText": "40.773 Aufrufe",
-      "lengthText": "1:02:58",
-      "thumbnails": [...]
-    }
-  ],
-  "loaded_videos_count": 1
-}
-```
 
 ## Limitations
 
