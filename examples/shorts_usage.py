@@ -63,6 +63,14 @@ def main():
             print("Short data and comments saved to shorts_example.json")
         else:
             print("No comments continuation token found for this short.")
+        print()
+
+        # Fetch multiple shorts from feed
+        print("Fetching shorts feed...")
+        shorts_feed = shorts.fetch_shorts_feed(max_shorts=50)
+        print(f"Loaded {len(shorts_feed)} shorts from feed")
+        for i, feed_short in enumerate(shorts_feed[:50]):
+            print(f"Feed Short {i+1}: {feed_short.get('title', 'N/A')} ({feed_short.get('video_id', 'N/A')})")
 
     except Exception as e:
         print(f"Error: {e}")

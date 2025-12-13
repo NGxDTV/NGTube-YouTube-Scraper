@@ -11,7 +11,7 @@ A comprehensive Python library for scraping YouTube data, including videos, comm
 - **Video Extraction**: Extract detailed metadata from YouTube videos (title, views, likes, duration, tags, description, etc.)
 - **Comment Extraction**: Extract comments from videos, including loading additional comments via YouTube's internal API
 - **Channel Extraction**: Extract complete channel profile data (subscribers, description, featured video, video list with continuation support)
-- **Shorts Extraction**: Fetch random shorts from YouTube's homepage with metadata and comments and comments
+- **Shorts Extraction**: Fetch random shorts from YouTube's homepage with metadata and comments, and load unlimited shorts from the Shorts feed
 - **Search Functionality**: Search YouTube with various filters (videos, channels, playlists, etc.) and country localization
 - **Country Localization**: Support for different countries/regions (US, DE, UK, FR, etc.) for all API requests
 - **Flexible Video Loading**: Load specific number of videos or all available videos from a channel
@@ -123,12 +123,19 @@ print("Total videos:", profile_all['stats']['loaded_videos_count'])
 from NGTube import Shorts
 
 shorts = Shorts()
-short_data = shorts.fetch_short()
 
+# Fetch a single random short
+short_data = shorts.fetch_short()
 print("Title:", short_data['title'])
 print("Video ID:", short_data['video_id'])
 print("Channel:", short_data['channel_name'])
 print("Thumbnail:", short_data['thumbnail'][0]['url'])
+
+# Fetch multiple shorts from the feed
+shorts_feed = shorts.fetch_shorts_feed(max_shorts=20)
+print(f"Loaded {len(shorts_feed)} shorts from feed")
+for short in shorts_feed[:3]:
+    print(f"Short: {short['video_id']} - Views: {short.get('view_count', 'N/A')}")
 ```
 
 ## Detailed Usage
@@ -204,6 +211,9 @@ short_data = shorts.fetch_short()
 # Fetch comments for the short
 comments = shorts.fetch_comments()
 
+# Fetch multiple shorts from the Shorts feed (unlimited)
+shorts_feed = shorts.fetch_shorts_feed(max_shorts=50)
+
 # Available short data:
 # - title: The title of the short
 # - video_id: The YouTube video ID
@@ -219,6 +229,13 @@ comments = shorts.fetch_comments()
 # - publish_date: Publication date
 # - sequence_continuation: Token for fetching next short in sequence
 # - comments_continuation: Token for fetching comments
+
+# Shorts feed data structure (basic metadata):
+# - video_id: The YouTube video ID
+# - title: The title of the short (may be empty for some)
+# - thumbnail: Thumbnail URL
+# - view_count: Number of views (text format)
+# - published_time: Relative time (e.g., "2 hours ago")
 
 # Comments data structure:
 # - comment_id: Unique comment identifier

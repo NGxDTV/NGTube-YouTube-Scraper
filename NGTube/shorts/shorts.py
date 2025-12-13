@@ -26,7 +26,7 @@ class Shorts:
             from ..core import CountryFilters
             country = CountryFilters.US
         self.country = country
-        self.core = YouTubeCore("https://www.youtube.com")
+        self.core = YouTubeCore("https://www.youtube.com/shorts")
         self.data = {}
         self.endpoint = "https://www.youtube.com/youtubei/v1/reel/reel_item_watch"
         self.client_version = self.core.get_client_version("2.20251212.01.00")
@@ -212,6 +212,80 @@ class Shorts:
         data["sequence_continuation"] = response.get("sequenceContinuation", "")
 
         return data
+
+    def fetch_shorts_feed(self, max_shorts: int = 50) -> list:
+        """
+        Fetch multiple shorts from the YouTube Shorts feed.
+
+        Args:
+            max_shorts (int): Maximum number of shorts to fetch.
+
+        Returns:
+            list: A list of dictionaries containing short metadata (basic info only for performance).
+        """
+        shorts_list = []
+        
+        # Get initial sequence continuation from Shorts page
+        html = self.core.fetch_html()
+        yt_initial_data = self.core.extract_ytinitialdata(html)
+        sequence_continuation = yt_initial_data.get('sequenceContinuation', '')
+        
+        if not sequence_continuation:
+            raise Exception("Could not find sequence continuation for Shorts feed")
+        
+        endpoint = "https://www.youtube.com/youtubei/v1/reel/reel_watch_sequence"
+        
+        while len(shorts_list) < max_shorts and sequence_continuation:
+            payload = {
+                "context": {
+                    "client": {
+                        "hl": self.country["hl"],
+                        "gl": self.country["gl"],
+                        "visitorData": self.visitor_data,
+                        "clientName": "WEB",
+                        "clientVersion": self.client_version,
+                        "osName": "Windows",
+                        "osVersion": "10.0",
+                        "platform": "DESKTOP"
+                    },
+                    "request": {
+                        "useSsl": True
+                    }
+                },
+                "sequenceParams": sequence_continuation
+            }
+            
+            response = self.core.make_api_request(endpoint, payload)
+            
+            # Parse entries
+            entries = response.get('entries', [])
+            for entry in entries:
+                if len(shorts_list) >= max_shorts:
+                    break
+                if 'command' in entry:
+                    command = entry['command']
+                    if 'reelWatchEndpoint' in command:
+                        endpoint_data = command['reelWatchEndpoint']
+                        video_id = endpoint_data.get('videoId')
+                        if video_id:
+                            # Create basic short data
+                            short_data = {
+                                'video_id': video_id,
+                                'title': endpoint_data.get('overlay', {}).get('reelPlayerOverlayRenderer', {}).get('reelPlayerHeaderSupportedRenderers', {}).get('reelPlayerHeaderRenderer', {}).get('reelTitleText', {}).get('simpleText', ''),
+                                'channel_name': endpoint_data.get('overlay', {}).get('reelPlayerOverlayRenderer', {}).get('reelPlayerHeaderSupportedRenderers', {}).get('reelPlayerHeaderRenderer', {}).get('channelTitleText', {}).get('simpleText', ''),
+                                'thumbnail': endpoint_data.get('thumbnail', {}).get('thumbnails', [])
+                            }
+                            shorts_list.append(short_data)
+            
+            # Get next continuation
+            continuation_endpoint = response.get('continuationEndpoint', {})
+            if continuation_endpoint:
+                continuation_command = continuation_endpoint.get('continuationCommand', {})
+                sequence_continuation = continuation_command.get('token', '')
+            else:
+                sequence_continuation = ''
+        
+        return shorts_list
 
     def fetch_comments(self, continuation_token: str | None = None) -> list:
         """
