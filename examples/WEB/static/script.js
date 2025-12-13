@@ -54,6 +54,8 @@ document.getElementById('commentsForm').addEventListener('submit', async (e) => 
 
 document.getElementById('shortsForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+    currentShortsData = null;
+    currentDisplayedComments = 0;
     await submitForm('shortsForm', 'shortsResults', '/shorts', renderShortsInfo);
 });
 
@@ -97,6 +99,10 @@ let currentChannelData = null;
 let currentChannelUrl = null;
 let currentLoadedVideos = 0;
 let loadedVideoIds = new Set();
+
+// Store shorts data globally for load more comments functionality
+let currentShortsData = null;
+let currentDisplayedComments = 0;
 
 document.getElementById('channelForm').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -526,6 +532,69 @@ async function loadMoreChannelVideos() {
     btn.disabled = false;
 }
 
+// Load more shorts comments
+function loadMoreShortsComments() {
+    if (!currentShortsData || !currentShortsData.all_comments) return;
+
+    const btn = document.getElementById('loadMoreShortsCommentsBtn');
+    const commentsContainer = document.querySelector('.shorts-comments');
+    
+    if (!btn || !commentsContainer) return;
+
+    // Calculate how many more comments to show (show 20 more each time)
+    const remainingComments = currentShortsData.all_comments.slice(currentDisplayedComments);
+    const commentsToAdd = remainingComments.slice(0, 20);
+    
+    if (commentsToAdd.length === 0) {
+        btn.style.display = 'none';
+        return;
+    }
+
+    // Render new comments
+    const newCommentsHtml = commentsToAdd.map(comment => {
+        const avatarUrl = comment.authorThumbnail || comment.author_thumbnail || comment.author?.avatar;
+        const avatarHtml = avatarUrl ?
+            `<img src="${avatarUrl}" alt="" class="comment-avatar" onerror="this.outerHTML='<div class=\\'comment-avatar-placeholder\\'>${(comment.author?.display_name || comment.author || 'A')[0].toUpperCase()}</div>'">` :
+            `<div class="comment-avatar-placeholder">${(comment.author?.display_name || comment.author || 'A')[0].toUpperCase()}</div>`;
+
+        const replyCount = comment.toolbar?.reply_count || comment.replyCount || comment.reply_count || 0;
+        const likeCount = comment.toolbar?.like_count || comment.likeCount || comment.like_count || 0;
+
+        return `
+            <div class="comment-item">
+                <div class="comment-author">${escapeHtml(comment.author?.display_name || comment.author || 'Anonymous')}</div>
+                <div class="comment-content">${escapeHtml(comment.content || comment.text || '')}</div>
+                <div class="comment-meta">
+                    <span class="comment-likes">${formatNumber(likeCount)} likes</span>
+                    ${replyCount > 0 ? `<span class="comment-replies">${formatNumber(replyCount)} replies</span>` : ''}
+                    <span>${comment.published_time || comment.publishedTimeText || comment.published_time_text || ''}</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    // Insert new comments before the load more button
+    const loadMoreContainer = commentsContainer.querySelector('.load-more-container');
+    loadMoreContainer.insertAdjacentHTML('beforebegin', newCommentsHtml);
+
+    // Update displayed count
+    currentDisplayedComments += commentsToAdd.length;
+
+    // Update header
+    const header = commentsContainer.querySelector('h3');
+    if (header) {
+        header.textContent = `Comments (${currentDisplayedComments}/${currentShortsData.total_comments})`;
+    }
+
+    // Update button text or hide if no more comments
+    const stillRemaining = currentShortsData.total_comments - currentDisplayedComments;
+    if (stillRemaining > 0) {
+        btn.textContent = `+ Load More Comments (${stillRemaining} remaining)`;
+    } else {
+        btn.style.display = 'none';
+    }
+}
+
 function renderSearchResults(data) {
     if (!data || data.length === 0) {
         return '<div class="error">No search results found</div>';
@@ -616,6 +685,12 @@ function renderShortsInfo(data) {
 
     const short = data.short;
     const comments = data.comments || [];
+    const totalComments = data.total_comments || comments.length;
+    const allComments = data.all_comments || comments;
+
+    // Store data for load more functionality
+    currentShortsData = data;
+    currentDisplayedComments = comments.length;
 
     // Get thumbnail
     const thumbnail = getBestThumbnail(short.thumbnail, 720) ||
@@ -642,7 +717,7 @@ function renderShortsInfo(data) {
                         </div>
                         <div class="shorts-stat">
                             <span>💬</span>
-                            <span>${formatNumber(short.comment_count || 0)}</span>
+                            <span>${formatNumber(short.comment_count || totalComments)}</span>
                         </div>
                     </div>
                 </div>
@@ -673,12 +748,22 @@ function renderShortsInfo(data) {
         `;
     }).join('') : '<div class="comment-item"><div class="comment-content">No comments found</div></div>';
 
+    // Load more button if there are more comments
+    const loadMoreHtml = currentDisplayedComments < totalComments ? `
+        <div class="load-more-container">
+            <button class="load-more-btn" onclick="loadMoreShortsComments()" id="loadMoreShortsCommentsBtn">
+                + Load More Comments (${totalComments - currentDisplayedComments} remaining)
+            </button>
+        </div>
+    ` : '';
+
     return `
         <div class="shorts-layout">
             ${mediaHtml}
             <div class="shorts-comments">
-                <h3>Comments (${comments.length})</h3>
+                <h3>Comments (${currentDisplayedComments}/${totalComments})</h3>
                 ${commentsHtml}
+                ${loadMoreHtml}
             </div>
         </div>
     `;

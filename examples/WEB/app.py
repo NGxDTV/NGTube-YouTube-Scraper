@@ -92,17 +92,19 @@ def get_shorts():
             shorts = Shorts()
             short_data = shorts.fetch_short()
 
-        # Load comments for the short
+        # Load ALL comments for the short (no limit for load more functionality)
         comments = Comments(f"https://www.youtube.com/watch?v={video_id}")
         comments_data = comments.get_comments()
 
-        # Limit comments
-        comments_data['comments'] = comments_data['comments'][:limit]
+        # For initial display, limit comments but send all
+        initial_comments = comments_data['comments'][:limit]
 
         # Combine short data with comments
         result = {
             'short': short_data,
-            'comments': comments_data['comments']
+            'comments': initial_comments,
+            'total_comments': len(comments_data['comments']),
+            'all_comments': comments_data['comments']  # Send all comments for load more
         }
 
         return jsonify({
