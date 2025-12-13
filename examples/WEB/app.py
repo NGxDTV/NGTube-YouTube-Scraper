@@ -68,20 +68,20 @@ def get_channel():
             return jsonify({'error': 'No URL provided'})
         url = str(url)
         max_videos = int(request.form.get('max_videos', 5))
-        max_reels = int(request.form.get('max_reels', 5))
+        max_shorts = int(request.form.get('max_shorts', 5))
         max_playlists = int(request.form.get('max_playlists', 5))
 
         channel = Channel(url)
         profile = channel.extract_profile(max_videos=max_videos)
 
-        # Extract reels if requested
-        if max_reels > 0:
+        # Extract shorts if requested
+        if max_shorts > 0:
             try:
-                reels = channel.extract_reels(max_reels=max_reels)
-                profile['reels'] = reels
+                shorts = channel.extract_shorts(max_shorts=max_shorts)
+                profile['shorts'] = shorts
             except Exception as e:
-                profile['reels'] = []
-                print(f"Error extracting reels: {e}")
+                profile['shorts'] = []
+                print(f"Error extracting shorts: {e}")
 
         # Extract playlists if requested
         if max_playlists > 0:
@@ -98,7 +98,7 @@ def get_channel():
             'total_views': profile.get('total_views', 0),
             'video_count': profile.get('video_count', 0),
             'loaded_videos_count': len(profile.get('videos', [])),
-            'loaded_reels_count': len(profile.get('reels', [])),
+            'loaded_shorts_count': len(profile.get('shorts', [])),
             'loaded_playlists_count': len(profile.get('playlists', []))
         }
         profile['stats'] = stats

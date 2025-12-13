@@ -208,7 +208,7 @@ function renderChannelInfo(data) {
     const subscriberCount = stats.subscribers || 0;
     const videoCount = stats.video_count || 0;
     const loadedVideosCount = stats.loaded_videos_count || 0;
-    const loadedReelsCount = stats.loaded_reels_count || 0;
+    const loadedShortsCount = stats.loaded_shorts_count || 0;
     const loadedPlaylistsCount = stats.loaded_playlists_count || 0;
 
     // Get channel avatar - might be in different places
@@ -269,29 +269,29 @@ function renderChannelInfo(data) {
         `;
     }).join('');
 
-    // Render reels with thumbnails
-    const reelsHtml = data.reels && data.reels.length > 0 ? data.reels.map(reel => {
-        // Get reel thumbnail
-        const reelThumb = getBestThumbnail(reel.thumbnails, 320) || 
-                         (reel.videoId ? `https://i.ytimg.com/vi/${reel.videoId}/mqdefault.jpg` : null);
+    // Render shorts with thumbnails
+    const shortsHtml = data.shorts && data.shorts.length > 0 ? data.shorts.map(short => {
+        // Get short thumbnail
+        const shortThumb = getBestThumbnail(short.thumbnails, 320) || 
+                         (short.videoId ? `https://i.ytimg.com/vi/${short.videoId}/mqdefault.jpg` : null);
         
         return `
             <div class="video-item">
                 <div class="video-item-thumbnail">
-                    ${reelThumb ? 
-                        `<img src="${reelThumb}" alt="" onerror="this.parentElement.innerHTML='<div class=\\'no-thumbnail\\'></div>'">` :
+                    ${shortThumb ? 
+                        `<img src="${shortThumb}" alt="" onerror="this.parentElement.innerHTML='<div class=\\'no-thumbnail\\'></div>'">` :
                         '<div class="no-thumbnail"></div>'
                     }
-                    <span class="video-item-duration">REEL</span>
+                    <span class="video-item-duration">SHORT</span>
                 </div>
                 <div class="video-item-content">
-                    <div class="video-item-title">${escapeHtml(reel.title || 'Unknown Title')}</div>
+                    <div class="video-item-title">${escapeHtml(short.title || 'Unknown Title')}</div>
                     <div class="video-item-meta">
-                        <span>${reel.viewCountText || '0 views'}</span>
+                        <span>${short.viewCountText || '0 views'}</span>
                     </div>
                     <div class="video-item-actions">
-                        <button class="video-item-btn info-btn" onclick="openVideoInfo('${reel.videoId}')">🎬 Info</button>
-                        <button class="video-item-btn comments-btn" onclick="openVideoComments('${reel.videoId}')">💬 Comments</button>
+                        <button class="video-item-btn info-btn" onclick="openVideoInfo('${short.videoId}')">🎬 Info</button>
+                        <button class="video-item-btn comments-btn" onclick="openVideoComments('${short.videoId}')">💬 Comments</button>
                     </div>
                 </div>
             </div>
@@ -354,10 +354,10 @@ function renderChannelInfo(data) {
                     <div class="channel-stat-label">Loaded Videos</div>
                     <div class="channel-stat-value">${formatNumber(loadedVideosCount)}</div>
                 </div>
-                ${loadedReelsCount > 0 ? `
+                ${loadedShortsCount > 0 ? `
                 <div class="channel-stat">
-                    <div class="channel-stat-label">Loaded Reels</div>
-                    <div class="channel-stat-value">${formatNumber(loadedReelsCount)}</div>
+                    <div class="channel-stat-label">Loaded Shorts</div>
+                    <div class="channel-stat-value">${formatNumber(loadedShortsCount)}</div>
                 </div>
                 ` : ''}
                 ${loadedPlaylistsCount > 0 ? `
@@ -375,9 +375,9 @@ function renderChannelInfo(data) {
                 <button class="load-more-btn" onclick="loadMoreChannelVideos()" id="loadMoreBtn">+ Load More Videos</button>
             </div>
         ` : ''}
-        ${reelsHtml ? `
-            <div class="videos-section-title">Recent Reels (${data.reels.length})</div>
-            <div class="videos-grid">${reelsHtml}</div>
+        ${shortsHtml ? `
+            <div class="videos-section-title">Recent Shorts (${data.shorts.length})</div>
+            <div class="videos-grid">${shortsHtml}</div>
         ` : ''}
         ${playlistsHtml ? `
             <div class="videos-section-title">Recent Playlists (${data.playlists.length})</div>

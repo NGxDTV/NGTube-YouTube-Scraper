@@ -9,6 +9,7 @@ from .video.video import Video
 from .comments.comments import Comments
 from .channel.channel import Channel
 from .search.search import Search, SearchFilters
+from .shorts.shorts import Shorts
 
-__version__ = "1.0.2"
+__version__ = "1.0.3"
 __author__ = "NGTube Team"

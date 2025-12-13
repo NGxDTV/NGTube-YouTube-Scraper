@@ -7,7 +7,7 @@ A simple web interface for demonstrating all NGTube library features using Flask
 - **Video Information**: Extract detailed metadata from YouTube videos (title, views, likes, duration, tags, description, etc.)
 - **Comments**: Fetch and display video comments with author information and timestamps
 - **Channel Information**: Get channel profiles and recent videos with formatted display
-- **Channel Reels/Shorts**: Load and display channel's short-form videos (reels) with view counts
+- **Channel Shorts**: Load and display channel's short-form videos (shorts) with view counts
 - **Channel Playlists**: Browse and access channel playlists with video counts
 - **Search**: Search YouTube with various filters (videos, channels, playlists, movies, etc.)
 - **Dark Theme**: Modern dark UI with beautiful gradients and responsive design
@@ -56,9 +56,9 @@ The web interface provides four main sections with a modern dark theme:
 
 ### Channel Info
 - Enter a YouTube channel URL (supports both /channel/ and @handle formats)
-- Specify maximum number of videos, reels/shorts, and playlists to fetch
+- Specify maximum number of videos, shorts, and playlists to fetch
 - Get channel profile information including banner image and avatar
-- View recent videos, reels, and playlists in organized sections
+- View recent videos, shorts, and playlists in organized sections
 - Display channel statistics and metadata
 
 ### Search

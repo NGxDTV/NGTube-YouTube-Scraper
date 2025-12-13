@@ -5,10 +5,10 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="NGTube",
-    version="1.0.2",
+    version="1.0.4",
     author="NGxD TV",
     author_email="",
-    description="A Python library for scraping YouTube video data",
+    description="A Python library for scraping YouTube video, channel, search, and shorts data",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="",

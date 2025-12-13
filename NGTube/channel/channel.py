@@ -76,12 +76,12 @@ class Channel:
 
         return self.data
 
-    def extract_reels(self, max_reels: Union[int, str] = 200) -> list:
+    def extract_shorts(self, max_shorts: Union[int, str] = 200) -> list:
         """
-        Extract channel reels/shorts.
+        Extract channel shorts.
 
         Args:
-            max_reels (int | str): Maximum number of reels to load. Use 'all' to load all reels.
+            max_shorts (int | str): Maximum number of shorts to load. Use 'all' to load all shorts.
         """
         # API URL
         api_url = "https://www.youtube.com/youtubei/v1/browse"
@@ -89,18 +89,18 @@ class Channel:
         # Extract channel ID from URL
         channel_id = self._extract_channel_id()
 
-        # Payload for Reels Tab
-        payload_reels = self._get_payload_reels(channel_id)
+        # Payload for Shorts Tab
+        payload_shorts = self._get_payload_shorts(channel_id)
 
-        # Make API request for reels tab
+        # Make API request for shorts tab
         try:
-            data_reels = self.core.make_api_request(api_url, payload_reels)
+            data_shorts = self.core.make_api_request(api_url, payload_shorts)
         except Exception as e:
-            raise ValueError(f"Failed to fetch reels data: {e}")
+            raise ValueError(f"Failed to fetch shorts data: {e}")
 
-        # Extract reels
-        reels = self._extract_reels_data(data_reels, max_reels)
-        return reels
+        # Extract shorts
+        shorts = self._extract_shorts_data(data_shorts, max_shorts)
+        return shorts
 
     def extract_playlists(self, max_playlists: Union[int, str] = 200) -> list:
         """
@@ -128,12 +128,12 @@ class Channel:
         playlists = self._extract_playlists_data(data_playlists, max_playlists)
         return playlists
 
-    def _extract_reels_data(self, data: dict, max_reels: Union[int, str]) -> list:
-        """Extract reels data from API response."""
-        reels = self._find_reels(data)
-        if max_reels != 'all' and isinstance(max_reels, int):
-            reels = reels[:max_reels]
-        return reels
+    def _extract_shorts_data(self, data: dict, max_shorts: Union[int, str]) -> list:
+        """Extract shorts data from API response."""
+        shorts = self._find_shorts(data)
+        if max_shorts != 'all' and isinstance(max_shorts, int):
+            shorts = shorts[:max_shorts]
+        return shorts
 
     def _extract_playlists_data(self, data: dict, max_playlists: Union[int, str]) -> list:
         """Extract playlists data from API response."""
@@ -280,8 +280,8 @@ class Channel:
             "params": "EgZ2aWRlb3PyBgQKAjoA"
         }
 
-    def _get_payload_reels(self, channel_id: str) -> dict:
-        """Get payload for reels/shorts tab."""
+    def _get_payload_shorts(self, channel_id: str) -> dict:
+        """Get payload for shorts tab."""
         return {
             "context": {
                 "client": {
@@ -540,9 +540,9 @@ class Channel:
                 videos.extend(self._find_videos(item))
         return videos
 
-    def _find_reels(self, obj):
-        """Find reels in the data structure."""
-        reels = []
+    def _find_shorts(self, obj):
+        """Find shorts in the data structure."""
+        shorts = []
         if isinstance(obj, dict):
             if 'richGridRenderer' in obj and 'contents' in obj['richGridRenderer']:
                 for item in obj['richGridRenderer']['contents']:
@@ -559,21 +559,21 @@ class Channel:
                             title = overlay.get('primaryText', {}).get('content', '')
                             # Extract viewCountText from overlayMetadata.secondaryText
                             view_count_text = overlay.get('secondaryText', {}).get('content', '')
-                            reel = {
+                            short = {
                                 'videoId': video_id,
                                 'title': title,
                                 'viewCountText': view_count_text,
                                 'viewCount': utils.extract_number(view_count_text),
                                 'thumbnails': slvm.get('onTap', {}).get('innertubeCommand', {}).get('reelWatchEndpoint', {}).get('thumbnail', {}).get('thumbnails', [])
                             }
-                            reels.append(reel)
+                            shorts.append(short)
             # Recurse
             for v in obj.values():
-                reels.extend(self._find_reels(v))
+                shorts.extend(self._find_shorts(v))
         elif isinstance(obj, list):
             for item in obj:
-                reels.extend(self._find_reels(item))
-        return reels
+                shorts.extend(self._find_shorts(item))
+        return shorts
     def _find_continuation_token(self, obj):
         """Find continuation token in the data structure."""
         if isinstance(obj, dict):

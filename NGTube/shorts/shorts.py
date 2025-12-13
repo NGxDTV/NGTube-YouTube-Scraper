@@ -1,0 +1,310 @@
+"""
+NGTube Shorts Module
+
+This module provides functionality to extract shorts from YouTube.
+"""
+
+from ..core import YouTubeCore
+
+class Shorts:
+    """
+    Class to fetch random shorts from YouTube homepage.
+
+    Attributes:
+        data (dict): The extracted short data.
+    """
+
+    def __init__(self):
+        """
+        Initialize the Shorts class.
+        """
+        self.core = YouTubeCore("https://www.youtube.com")
+        self.data = {}
+        self.endpoint = "https://www.youtube.com/youtubei/v1/reel/reel_item_watch"
+        self.client_version = self.core.get_client_version("2.20251212.01.00")
+        self.visitor_data = self.core.extract_visitor_data(self.core.fetch_html())
+
+    def fetch_short(self) -> dict:
+        """
+        Fetch a random short from YouTube.
+
+        Returns:
+            dict: A dictionary containing short metadata.
+        """
+        payload = {
+            "context": {
+                "client": {
+                    "hl": "de",
+                    "gl": "DE",
+                    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 OPR/124.0.0.0,gzip(gfe)",
+                    "clientName": "WEB",
+                    "clientVersion": self.client_version
+                },
+                "request": {
+                    "useSsl": True,
+                    "internalExperimentFlags": [],
+                    "consistencyTokenJars": []
+                }
+            },
+            "params": "CA8%3D",
+            "inputType": "REEL_WATCH_INPUT_TYPE_SEEDLESS",
+            "disablePlayerResponse": True
+        }
+
+        response = self.core.make_api_request(self.endpoint, payload)
+
+        if response.get("status") == "REEL_ITEM_WATCH_STATUS_SUCCEEDED":
+            self.data = self._parse_response(response)
+        else:
+            raise Exception("Failed to fetch short")
+
+        return self.data
+
+    def _parse_response(self, response: dict) -> dict:
+        """
+        Parse the API response to extract short metadata.
+
+        Args:
+            response (dict): The API response JSON.
+
+        Returns:
+            dict: Parsed short metadata.
+        """
+        data = {}
+
+        overlay = response.get("overlay", {})
+        short_overlay = overlay.get("reelPlayerOverlayRenderer", {})
+
+        # Parse metadata items
+        metapanel = short_overlay.get("metapanel", {})
+        short_metapanel = metapanel.get("reelMetapanelViewModel", {})
+        metadata_items = short_metapanel.get("metadataItems", [])
+
+        for item in metadata_items:
+            if "reelChannelBarViewModel" in item:
+                channel_vm = item["reelChannelBarViewModel"]
+                data["channel_name"] = channel_vm.get("channelName", {}).get("content", "")
+                data["channel_handle"] = channel_vm.get("channelName", {}).get("content", "").replace("@", "")
+                browse_endpoint = channel_vm.get("channelName", {}).get("commandRuns", [{}])[0].get("onTap", {}).get("innertubeCommand", {}).get("browseEndpoint", {})
+                data["channel_id"] = browse_endpoint.get("browseId", "")
+                data["channel_url"] = browse_endpoint.get("canonicalBaseUrl", "")
+
+            elif "shortsVideoTitleViewModel" in item:
+                title_vm = item["shortsVideoTitleViewModel"]
+                data["title"] = title_vm.get("text", {}).get("content", "")
+
+            elif "reelSoundMetadataViewModel" in item:
+                sound_vm = item["reelSoundMetadataViewModel"]
+                data["sound_metadata"] = sound_vm.get("soundMetadata", {}).get("content", "")
+
+        # Parse button bar for likes and comments
+        button_bar = short_overlay.get("buttonBar", {})
+        short_action_bar = button_bar.get("reelActionBarViewModel", {})
+        button_view_models = short_action_bar.get("buttonViewModels", [])
+
+        for button_vm in button_view_models:
+            if "likeButtonViewModel" in button_vm:
+                like_vm = button_vm["likeButtonViewModel"]
+                toggle_vm = like_vm.get("toggleButtonViewModel", {}).get("toggleButtonViewModel", {})
+                default_vm = toggle_vm.get("defaultButtonViewModel", {}).get("buttonViewModel", {})
+                title = default_vm.get("title", "")
+                if title and title.replace(".", "").replace(",", "").isdigit():
+                    data["like_count"] = self._parse_number(title)
+                toggled_vm = toggle_vm.get("toggledButtonViewModel", {}).get("buttonViewModel", {})
+                toggled_title = toggled_vm.get("title", "")
+                if toggled_title and toggled_title.replace(".", "").replace(",", "").isdigit():
+                    data["like_count"] = self._parse_number(toggled_title)
+
+            elif "buttonViewModel" in button_vm:
+                bvm = button_vm["buttonViewModel"]
+                title = bvm.get("title", "")
+                accessibility = bvm.get("accessibilityText", "")
+                if "Kommentar" in accessibility or "comment" in accessibility.lower():
+                    if title and title.isdigit():
+                        data["comment_count"] = int(title)
+
+        # Parse engagement panels for comments and description
+        engagement_panels = response.get("engagementPanels", [])
+        for panel in engagement_panels:
+            if "engagementPanelSectionListRenderer" in panel:
+                panel_renderer = panel["engagementPanelSectionListRenderer"]
+                header = panel_renderer.get("header", {})
+                title_header = header.get("engagementPanelTitleHeaderRenderer", {})
+                title = title_header.get("title", {})
+                runs = title.get("runs", [])
+                if runs and "Kommentar" in runs[0].get("text", ""):
+                    contextual_info = title_header.get("contextualInfo", {})
+                    info_runs = contextual_info.get("runs", [])
+                    if info_runs:
+                        comment_count_text = info_runs[0].get("text", "")
+                        if comment_count_text.isdigit():
+                            data["comment_count"] = int(comment_count_text)
+
+                    # Extract continuation token for comments
+                    content = panel_renderer.get("content", {})
+                    section_list = content.get("sectionListRenderer", {})
+                    contents = section_list.get("contents", [])
+                    for content_item in contents:
+                        if "itemSectionRenderer" in content_item:
+                            item_section = content_item["itemSectionRenderer"]
+                            item_contents = item_section.get("contents", [])
+                            for item in item_contents:
+                                if "continuationItemRenderer" in item:
+                                    continuation_renderer = item["continuationItemRenderer"]
+                                    continuation_endpoint = continuation_renderer.get("continuationEndpoint", {})
+                                    continuation_command = continuation_endpoint.get("continuationCommand", {})
+                                    data["comments_continuation"] = continuation_command.get("token", "")
+
+                if "structuredDescriptionContentRenderer" in panel_renderer.get("content", {}):
+                    content = panel_renderer.get("content", {})
+                    desc_renderer = content["structuredDescriptionContentRenderer"]
+                    items = desc_renderer.get("items", [])
+                    for item in items:
+                        if "videoDescriptionHeaderRenderer" in item:
+                            header_renderer = item["videoDescriptionHeaderRenderer"]
+                            title_runs = header_renderer.get("title", {}).get("runs", [])
+                            if title_runs:
+                                data["title"] = title_runs[0].get("text", "")
+
+                            channel = header_renderer.get("channel", {}).get("simpleText", "")
+                            if channel:
+                                data["channel_name"] = channel
+
+                            views = header_renderer.get("views", {}).get("simpleText", "")
+                            if views:
+                                data["view_count"] = self._parse_number(views.split()[0])
+
+                            publish_date = header_renderer.get("publishDate", {}).get("simpleText", "")
+                            if publish_date:
+                                data["publish_date"] = publish_date
+
+                            factoids = header_renderer.get("factoid", [])
+                            for factoid in factoids:
+                                if "factoidRenderer" in factoid:
+                                    fr = factoid["factoidRenderer"]
+                                    label = fr.get("label", {}).get("simpleText", "")
+                                    value = fr.get("value", {}).get("simpleText", "")
+                                    if "Like" in label:
+                                        data["like_count"] = self._parse_number(value)
+                                    elif "Aufruf" in label:
+                                        data["view_count"] = self._parse_number(value)
+                                elif "viewCountFactoidRenderer" in factoid:
+                                    vcfr = factoid["viewCountFactoidRenderer"]
+                                    fr = vcfr.get("factoid", {}).get("factoidRenderer", {})
+                                    value = fr.get("value", {}).get("simpleText", "")
+                                    if value:
+                                        data["view_count"] = self._parse_number(value)
+
+        # Additional data from replacementEndpoint
+        replacement = response.get("replacementEndpoint", {}).get("reelWatchEndpoint", {})
+        if replacement:
+            data["video_id"] = replacement.get("videoId", data.get("video_id", ""))
+            data["thumbnail"] = replacement.get("thumbnail", {}).get("thumbnails", data.get("thumbnail", []))
+
+        data["sequence_continuation"] = response.get("sequenceContinuation", "")
+
+        return data
+
+    def fetch_comments(self, continuation_token: str = None) -> list:
+        """
+        Fetch comments for the current short.
+
+        Args:
+            continuation_token (str): The continuation token for comments. If None, uses the token from the short data.
+
+        Returns:
+            list: A list of comment dictionaries.
+        """
+        if continuation_token is None:
+            continuation_token = self.data.get("comments_continuation", "")
+        
+        if not continuation_token:
+            return []
+
+        endpoint = "https://www.youtube.com/youtubei/v1/browse"
+        
+        payload = {
+            "context": {
+                "client": {
+                    "hl": "de",
+                    "gl": "DE",
+                    "visitorData": self.visitor_data,
+                    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 OPR/124.0.0.0,gzip(gfe)",
+                    "clientName": "WEB",
+                    "clientVersion": self.client_version,
+                    "osName": "Windows",
+                    "osVersion": "10.0",
+                    "originalUrl": "https://www.youtube.com/",
+                    "platform": "DESKTOP"
+                },
+                "request": {
+                    "useSsl": True
+                }
+            },
+            "continuation": continuation_token
+        }
+
+        response = self.core.make_api_request(endpoint, payload)
+        
+        return self._parse_comments_response(response)
+
+    def _parse_comments_response(self, response: dict) -> list:
+        """
+        Parse the comments API response.
+
+        Args:
+            response (dict): The API response JSON.
+
+        Returns:
+            list: List of parsed comment dictionaries.
+        """
+        comments = []
+        
+        framework_updates = response.get("frameworkUpdates", {})
+        entity_batch_update = framework_updates.get("entityBatchUpdate", {})
+        mutations = entity_batch_update.get("mutations", [])
+        
+        for mutation in mutations:
+            if "commentEntityPayload" in mutation.get("payload", {}):
+                comment_payload = mutation["payload"]["commentEntityPayload"]
+                properties = comment_payload.get("properties", {})
+                
+                comment = {
+                    "comment_id": properties.get("commentId", ""),
+                    "content": properties.get("content", {}).get("content", ""),
+                    "published_time": properties.get("publishedTime", ""),
+                    "reply_level": properties.get("replyLevel", 0),
+                    "author": {
+                        "channel_id": comment_payload.get("author", {}).get("channelId", ""),
+                        "display_name": comment_payload.get("author", {}).get("displayName", ""),
+                        "avatar_thumbnail_url": comment_payload.get("author", {}).get("avatarThumbnailUrl", ""),
+                        "is_verified": comment_payload.get("author", {}).get("isVerified", False),
+                        "is_creator": comment_payload.get("author", {}).get("isCreator", False)
+                    },
+                    "toolbar": {
+                        "like_count": self._parse_number(comment_payload.get("toolbar", {}).get("likeCountLiked", "0")),
+                        "reply_count": self._parse_number(comment_payload.get("toolbar", {}).get("replyCount", "0"))
+                    }
+                }
+                
+                comments.append(comment)
+        
+        return comments
+
+    def _parse_number(self, text: str) -> int:
+        """
+        Parse a number string with potential suffixes like 'Mio.', 'K', etc.
+
+        Args:
+            text (str): The text to parse.
+
+        Returns:
+            int: The parsed number.
+        """
+        text = text.replace(".", "").replace(",", "").strip()
+        if "Mio" in text or "M" in text:
+            return int(float(text.replace("Mio", "").replace("M", "")) * 1000000)
+        elif "K" in text:
+            return int(float(text.replace("K", "")) * 1000)
+        else:
+            return int(text) if text.isdigit() else 0

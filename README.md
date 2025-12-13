@@ -11,6 +11,7 @@ A comprehensive Python library for scraping YouTube data, including videos, comm
 - **Video Extraction**: Extract detailed metadata from YouTube videos (title, views, likes, duration, tags, description, etc.)
 - **Comment Extraction**: Extract comments from videos, including loading additional comments via YouTube's internal API
 - **Channel Extraction**: Extract complete channel profile data (subscribers, description, featured video, video list with continuation support)
+- **Shorts Extraction**: Fetch random shorts from YouTube's homepage with metadata and comments and comments
 - **Flexible Video Loading**: Load specific number of videos or all available videos from a channel
 - **Clean Data Output**: Structured JSON-compatible data output
 - **Modular Design**: Separate classes for different extraction tasks
@@ -114,6 +115,20 @@ profile_all = channel.extract_profile(max_videos='all')
 print("Total videos:", profile_all['stats']['loaded_videos_count'])
 ```
 
+### Fetch Random Shorts
+
+```python
+from NGTube import Shorts
+
+shorts = Shorts()
+short_data = shorts.fetch_short()
+
+print("Title:", short_data['title'])
+print("Video ID:", short_data['video_id'])
+print("Channel:", short_data['channel_name'])
+print("Thumbnail:", short_data['thumbnail'][0]['url'])
+```
+
 ## Detailed Usage
 
 ### Video Class
@@ -169,9 +184,47 @@ profile = channel.extract_profile(max_videos='all')
 # - banner (list of banner image dictionaries with url, width, height)
 # - featured_video (dict with videoId, title, description)
 # - videos (list of video dictionaries)
-# - reels (list of reel dictionaries)
+# - shorts (list of short dictionaries)
 # - playlists (list of playlist dictionaries)
-# - stats (dict containing: subscribers, total_views, video_count, loaded_videos_count, loaded_reels_count, loaded_playlists_count)
+# - stats (dict containing: subscribers, total_views, video_count, loaded_videos_count, loaded_shorts_count, loaded_playlists_count)
+```
+
+### Shorts Class
+
+```python
+from NGTube import Shorts
+
+shorts = Shorts()
+
+# Fetch a random short from YouTube's homepage
+short_data = shorts.fetch_short()
+
+# Fetch comments for the short
+comments = shorts.fetch_comments()
+
+# Available short data:
+# - title: The title of the short
+# - video_id: The YouTube video ID
+# - channel_name: The channel name (with @)
+# - channel_handle: The channel handle (without @)
+# - channel_id: The channel ID
+# - channel_url: The channel URL
+# - sound_metadata: Music/sound information if available
+# - thumbnail: List of thumbnail dictionaries with url, width, height
+# - like_count: Number of likes
+# - view_count: Number of views
+# - comment_count: Number of comments
+# - publish_date: Publication date
+# - sequence_continuation: Token for fetching next short in sequence
+# - comments_continuation: Token for fetching comments
+
+# Comments data structure:
+# - comment_id: Unique comment identifier
+# - content: The comment text
+# - published_time: When the comment was posted
+# - reply_level: Nesting level (0 for top-level)
+# - author: Dict with channel_id, display_name, avatar_thumbnail_url, is_verified, is_creator
+# - toolbar: Dict with like_count and reply_count
 ```
 
 ## Examples
@@ -181,6 +234,7 @@ See the `examples/` directory for complete working examples:
 - `basic_usage.py`: Extract video metadata and comments
 - `batch_processing.py`: Process multiple videos
 - `channel_usage.py`: Extract channel profile data
+- `shorts_usage.py`: Fetch random shorts from YouTube
 - `WEB/`: Web-based demo application showcasing all features
 
 Run any example:

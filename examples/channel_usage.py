@@ -40,18 +40,18 @@ def main():
 
         print(f"\nLoaded Videos Count: {len(videos)}")
 
-        # Extract reels/shorts
-        print("\n3. Extracting channel reels/shorts...")
+        # Extract shorts
+        print("\n3. Extracting channel shorts...")
         try:
-            reels = channel.extract_reels(max_reels=10)
-            print(f"Reels extracted: {len(reels)}")
-            if reels:
-                print("First 3 reels:")
-                for i, reel in enumerate(reels[:3]):
-                    print(f"  {i+1}. {reel.get('title', 'N/A')} - {reel.get('viewCountText', 'N/A')}")
-            profile['reels'] = reels
+            shorts = channel.extract_shorts(max_shorts=10)
+            print(f"Shorts extracted: {len(shorts)}")
+            if shorts:
+                print("First 3 shorts:")
+                for i, short in enumerate(shorts[:3]):
+                    print(f"  {i+1}. {short.get('title', 'N/A')} - {short.get('viewCountText', 'N/A')}")
+            profile['shorts'] = shorts
         except Exception as e:
-            print(f"Error extracting reels: {e}")
+            print(f"Error extracting shorts: {e}")
 
         # Extract playlists
         print("\n4. Extracting channel playlists...")
@@ -72,7 +72,7 @@ def main():
             'total_views': profile.get('total_views', 0),
             'video_count': profile.get('video_count', 0),
             'loaded_videos_count': len(profile.get('videos', [])),
-            'loaded_reels_count': len(profile.get('reels', [])),
+            'loaded_shorts_count': len(profile.get('shorts', [])),
             'loaded_playlists_count': len(profile.get('playlists', []))
         }
         profile['stats'] = stats

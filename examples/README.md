@@ -18,11 +18,11 @@ python examples/basic_usage.py
 ```
 
 ### channel_usage.py
-Demonstrates how to extract comprehensive channel profile data, including videos, reels, and playlists.
+Demonstrates how to extract comprehensive channel profile data, including videos, shorts, and playlists.
 
 **Features:**
 - Extract channel metadata (title, subscribers, description, etc.)
-- Load videos, reels (shorts), and playlists from a channel
+- Load videos, shorts, and playlists from a channel
 - Save complete profile data to `channel_profile.json`
 - Organized stats in a dedicated "stats" object
 
@@ -31,17 +31,19 @@ Demonstrates how to extract comprehensive channel profile data, including videos
 python examples/channel_usage.py
 ```
 
-### search_usage.py
-Shows how to perform YouTube searches for videos, channels, and playlists.
+### shorts_usage.py
+Demonstrates how to fetch random shorts from YouTube's homepage.
 
 **Features:**
-- Search YouTube with various query types
-- Extract search results with metadata
-- Save search results to JSON file
+- Fetch a random short from YouTube
+- Extract short metadata (title, video ID, channel info, sound metadata, likes, views, comments, etc.)
+- Fetch and display comments for the short
+- Save short data and comments to `shorts_example.json`
+- Display short information and first few comments in the console
 
 **Usage:**
 ```bash
-python examples/search_usage.py
+python examples/shorts_usage.py
 ```
 
 ## Output Files
@@ -50,6 +52,7 @@ python examples/search_usage.py
 - `channel_profile.json` - Complete channel data from channel_usage.py
 - `search_results.json` - Search results from search_usage.py
 - `batch_results/` - Directory containing individual video JSON files and summary.json
+- `reels_example.json` - Reel data and comments from reels_usage.py
 ```bash
 python examples/batch_processing.py
 ```
