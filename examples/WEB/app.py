@@ -12,7 +12,7 @@ import os
 # Add parent directory to path for NGTube import
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
-from NGTube import Video, Comments, Channel, Search, SearchFilters
+from NGTube import Video, Comments, Channel, Search, SearchFilters, Shorts
 
 app = Flask(__name__)
 
@@ -56,6 +56,58 @@ def get_comments():
         return jsonify({
             'success': True,
             'data': data
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)})
+
+@app.route('/shorts', methods=['POST'])
+def get_shorts():
+    try:
+        url = request.form.get('url')
+        limit = int(request.form.get('limit', 20))
+        is_random = request.form.get('random', 'false').lower() == 'true'
+
+        if is_random:
+            # Load random short
+            shorts = Shorts()
+            short_data = shorts.fetch_short()
+
+            # Extract video ID for comments
+            video_id = short_data.get('video_id')
+            if not video_id:
+                return jsonify({'error': 'Could not extract video ID from random short'})
+
+        else:
+            # Load specific short by URL
+            if not url:
+                return jsonify({'error': 'No URL provided'})
+
+            # Extract video ID from Shorts URL
+            if '/shorts/' in url:
+                video_id = url.split('/shorts/')[1].split('?')[0].split('&')[0]
+            else:
+                return jsonify({'error': 'Invalid Shorts URL format'})
+
+            # Create Shorts instance and fetch data
+            shorts = Shorts()
+            short_data = shorts.fetch_short()
+
+        # Load comments for the short
+        comments = Comments(f"https://www.youtube.com/watch?v={video_id}")
+        comments_data = comments.get_comments()
+
+        # Limit comments
+        comments_data['comments'] = comments_data['comments'][:limit]
+
+        # Combine short data with comments
+        result = {
+            'short': short_data,
+            'comments': comments_data['comments']
+        }
+
+        return jsonify({
+            'success': True,
+            'data': result
         })
     except Exception as e:
         return jsonify({'error': str(e)})

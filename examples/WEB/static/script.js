@@ -52,6 +52,46 @@ document.getElementById('commentsForm').addEventListener('submit', async (e) => 
     await submitForm('commentsForm', 'commentsResults', '/comments', renderComments);
 });
 
+document.getElementById('shortsForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    await submitForm('shortsForm', 'shortsResults', '/shorts', renderShortsInfo);
+});
+
+// Random shorts button
+document.getElementById('randomShortsBtn').addEventListener('click', async () => {
+    const limit = document.getElementById('shortsLimit').value;
+    const resultsDiv = document.getElementById('shortsResults');
+
+    // Show loading state
+    resultsDiv.innerHTML = '<div class="loading">LOADING RANDOM SHORT...</div>';
+    resultsDiv.classList.remove('error');
+
+    try {
+        const response = await fetch('/shorts', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+                'random': 'true',
+                'limit': limit
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            resultsDiv.innerHTML = renderShortsInfo(data.data);
+        } else {
+            resultsDiv.innerHTML = `<div class="error">${escapeHtml(data.error || 'Unknown error')}</div>`;
+            resultsDiv.classList.add('error');
+        }
+    } catch (error) {
+        resultsDiv.innerHTML = `<div class="error">Network error: ${escapeHtml(error.message)}</div>`;
+        resultsDiv.classList.add('error');
+    }
+});
+
 // Store channel data globally for load more functionality
 let currentChannelData = null;
 let currentChannelUrl = null;
@@ -568,6 +608,80 @@ function formatDuration(seconds) {
         return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     }
     return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+// Render shorts info with thumbnail and comments
+function renderShortsInfo(data) {
+    if (!data || !data.short) return '<div class="error">No shorts data received</div>';
+
+    const short = data.short;
+    const comments = data.comments || [];
+
+    // Get thumbnail
+    const thumbnail = getBestThumbnail(short.thumbnail, 720) ||
+                      (short.video_id ? `https://i.ytimg.com/vi/${short.video_id}/hqdefault.jpg` : null);
+
+    // Left side: Thumbnail with overlay
+    const mediaHtml = `
+        <div class="shorts-media">
+            <div class="shorts-thumbnail">
+                ${thumbnail ?
+                    `<img src="${thumbnail}" alt="Shorts Thumbnail" onerror="this.parentElement.innerHTML='<div class=\\'no-thumbnail\\'></div>'">` :
+                    '<div class="no-thumbnail"></div>'
+                }
+                <div class="shorts-overlay">
+                    <div class="shorts-title">${escapeHtml(short.title || 'Unknown Title')}</div>
+                    <div class="shorts-stats">
+                        <div class="shorts-stat">
+                            <span>❤️</span>
+                            <span>${formatNumber(short.like_count || 0)}</span>
+                        </div>
+                        <div class="shorts-stat">
+                            <span>👁️</span>
+                            <span>${formatNumber(short.view_count || 0)}</span>
+                        </div>
+                        <div class="shorts-stat">
+                            <span>💬</span>
+                            <span>${formatNumber(short.comment_count || 0)}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Right side: Comments
+    const commentsHtml = comments.length > 0 ? comments.map(comment => {
+        const avatarUrl = comment.authorThumbnail || comment.author_thumbnail || comment.author?.avatar;
+        const avatarHtml = avatarUrl ?
+            `<img src="${avatarUrl}" alt="" class="comment-avatar" onerror="this.outerHTML='<div class=\\'comment-avatar-placeholder\\'>${(comment.author?.display_name || comment.author || 'A')[0].toUpperCase()}</div>'">` :
+            `<div class="comment-avatar-placeholder">${(comment.author?.display_name || comment.author || 'A')[0].toUpperCase()}</div>`;
+
+        const replyCount = comment.toolbar?.reply_count || comment.replyCount || comment.reply_count || 0;
+        const likeCount = comment.toolbar?.like_count || comment.likeCount || comment.like_count || 0;
+
+        return `
+            <div class="comment-item">
+                <div class="comment-author">${escapeHtml(comment.author?.display_name || comment.author || 'Anonymous')}</div>
+                <div class="comment-content">${escapeHtml(comment.content || comment.text || '')}</div>
+                <div class="comment-meta">
+                    <span class="comment-likes">${formatNumber(likeCount)} likes</span>
+                    ${replyCount > 0 ? `<span class="comment-replies">${formatNumber(replyCount)} replies</span>` : ''}
+                    <span>${comment.published_time || comment.publishedTimeText || comment.published_time_text || ''}</span>
+                </div>
+            </div>
+        `;
+    }).join('') : '<div class="comment-item"><div class="comment-content">No comments found</div></div>';
+
+    return `
+        <div class="shorts-layout">
+            ${mediaHtml}
+            <div class="shorts-comments">
+                <h3>Comments (${comments.length})</h3>
+                ${commentsHtml}
+            </div>
+        </div>
+    `;
 }
 
 function escapeHtml(text) {
