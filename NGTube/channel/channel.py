@@ -142,45 +142,6 @@ class Channel:
             playlists = playlists[:max_playlists]
         return playlists
 
-    def _find_reels(self, obj):
-        """Find reels in the data structure."""
-        reels = []
-        if isinstance(obj, dict):
-            if 'richGridRenderer' in obj and 'contents' in obj['richGridRenderer']:
-                for item in obj['richGridRenderer']['contents']:
-                    if 'richItemRenderer' in item and 'content' in item['richItemRenderer']:
-                        content = item['richItemRenderer']['content']
-                        if 'shortsLockupViewModel' in content:
-                            slvm = content['shortsLockupViewModel']
-                            # Extract videoId from onTap.reelWatchEndpoint.videoId
-                            video_id = None
-                            if 'onTap' in slvm and 'innertubeCommand' in slvm['onTap'] and 'reelWatchEndpoint' in slvm['onTap']['innertubeCommand']:
-                                video_id = slvm['onTap']['innertubeCommand']['reelWatchEndpoint'].get('videoId')
-                            # Extract title from overlayMetadata.primaryText
-                            overlay = slvm.get('overlayMetadata', {})
-                            title = overlay.get('primaryText', {}).get('content', '')
-                            # Extract viewCountText from overlayMetadata.secondaryText
-                            view_count_text = overlay.get('secondaryText', {}).get('content', '')
-                            # Extract viewCount as int
-                            view_count = utils.extract_number(view_count_text) if view_count_text else 0
-                            # Extract thumbnails from thumbnailViewModel
-                            thumbnail_view = slvm.get('thumbnailViewModel', {}).get('thumbnailViewModel', {}).get('image', {}).get('sources', [])
-                            reel = {
-                                'videoId': video_id,
-                                'title': title,
-                                'viewCountText': view_count_text,
-                                'viewCount': view_count,
-                                'thumbnails': thumbnail_view
-                            }
-                            reels.append(reel)
-            # Recurse
-            for v in obj.values():
-                reels.extend(self._find_reels(v))
-        elif isinstance(obj, list):
-            for item in obj:
-                reels.extend(self._find_reels(item))
-        return reels
-
     def _find_playlists(self, obj):
         """Find playlists in the data structure."""
         playlists = []

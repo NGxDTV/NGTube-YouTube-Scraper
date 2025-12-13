@@ -167,8 +167,8 @@ class Comments:
                 payload = {
                     "context": {
                         "client": {
-                            "hl": "de",
-                            "gl": "DE",
+                            "hl": "en",
+                            "gl": "US",
                             "clientName": "WEB",
                             "clientVersion": "2.20251208.06.00",
                             "visitorData": self.visitor_data

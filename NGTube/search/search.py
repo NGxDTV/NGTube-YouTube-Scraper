@@ -55,8 +55,8 @@ class Search:
         self.payload = {
             "context": {
                 "client": {
-                    "hl": "de",
-                    "gl": "DE",
+                    "hl": "en",
+                    "gl": "US",
                     "clientName": "WEB",
                     "clientVersion": self.client_version,
                     "visitorData": self.visitor_data
