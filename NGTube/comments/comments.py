@@ -5,6 +5,7 @@ This module provides functionality to extract comments from YouTube videos.
 """
 
 import time
+from typing import Optional
 from ..core import YouTubeCore
 from .. import utils
 
@@ -18,13 +19,18 @@ class Comments:
         top_comments (list): List of top/pinned comments.
     """
 
-    def __init__(self, url: str):
+    def __init__(self, url: str, country: Optional[dict] = None):
         """
         Initialize the Comments with a URL.
 
         Args:
             url (str): The YouTube video URL.
+            country (dict): Country filter with 'hl' and 'gl' keys, use CountryFilters constants.
         """
+        if country is None:
+            from ..core import CountryFilters
+            country = CountryFilters.US
+        self.country = country
         self.url = url
         self.core = YouTubeCore(url)
         self.comments = []
@@ -167,8 +173,8 @@ class Comments:
                 payload = {
                     "context": {
                         "client": {
-                            "hl": "en",
-                            "gl": "US",
+                            "hl": self.country["hl"],
+                            "gl": self.country["gl"],
                             "clientName": "WEB",
                             "clientVersion": "2.20251208.06.00",
                             "visitorData": self.visitor_data

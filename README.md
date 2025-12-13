@@ -12,6 +12,8 @@ A comprehensive Python library for scraping YouTube data, including videos, comm
 - **Comment Extraction**: Extract comments from videos, including loading additional comments via YouTube's internal API
 - **Channel Extraction**: Extract complete channel profile data (subscribers, description, featured video, video list with continuation support)
 - **Shorts Extraction**: Fetch random shorts from YouTube's homepage with metadata and comments and comments
+- **Search Functionality**: Search YouTube with various filters (videos, channels, playlists, etc.) and country localization
+- **Country Localization**: Support for different countries/regions (US, DE, UK, FR, etc.) for all API requests
 - **Flexible Video Loading**: Load specific number of videos or all available videos from a channel
 - **Clean Data Output**: Structured JSON-compatible data output
 - **Modular Design**: Separate classes for different extraction tasks
@@ -284,6 +286,27 @@ Base class for YouTube interactions.
 - `extract_ytinitialdata(html: str) -> dict`: Extract ytInitialData
 - `make_api_request(endpoint: str, payload: dict) -> dict`: Make API requests
 
+#### CountryFilters
+Predefined country filters for localization.
+
+- `US`: United States (hl: "en", gl: "US")
+- `DE`: Germany (hl: "de", gl: "DE")
+- `UK`: United Kingdom (hl: "en", gl: "GB")
+- `FR`: France (hl: "fr", gl: "FR")
+- `ES`: Spain (hl: "es", gl: "ES")
+- `IT`: Italy (hl: "it", gl: "IT")
+- `JP`: Japan (hl: "ja", gl: "JP")
+
+#### SearchFilters
+Predefined search filters.
+
+- `MOVIES`: Search for movies
+- `CHANNELS`: Search for channels
+- `PLAYLISTS`: Search for playlists
+- `VIDEOS_TODAY`: Videos uploaded today
+- `LAST_HOUR`: Videos uploaded in the last hour
+- `SORT_BY_DATE`: Sort results by upload date
+
 #### Video
 Extract video metadata.
 
@@ -299,9 +322,27 @@ Extract video comments.
 #### Channel
 Extract channel profile and videos.
 
-- `__init__(url: str)`: Initialize with channel URL
+- `__init__(url: str, country: dict = None)`: Initialize with channel URL and optional country filter
 - `extract_profile(max_videos: int | str = 200) -> dict`: Extract profile data
   - `max_videos`: Number of videos to load, or 'all' for all videos
+
+#### Search
+Perform YouTube searches with filters.
+
+- `__init__(query: str, max_results: int = 50, filter: str = "", country: dict = None)`: Initialize search
+  - `query`: Search query string
+  - `max_results`: Maximum results to load
+  - `filter`: Search filter (use SearchFilters constants)
+  - `country`: Country filter (use CountryFilters constants)
+- `perform_search()`: Execute the search
+- `get_results() -> dict`: Get search results
+
+#### Shorts
+Fetch random shorts from YouTube.
+
+- `__init__(country: dict = None)`: Initialize with optional country filter
+- `fetch_short() -> dict`: Fetch a random short
+- `fetch_comments() -> list`: Fetch comments for the current short
 
 ### Utils Module
 

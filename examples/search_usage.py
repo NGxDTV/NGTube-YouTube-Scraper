@@ -9,7 +9,7 @@ import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from NGTube import Search, SearchFilters
+from NGTube import Search, SearchFilters, CountryFilters
 
 def main():
     # Example 1: Basic search
@@ -48,15 +48,15 @@ def main():
     print(f"Loaded items: {results_today['loaded_items']}")
     print()
 
-    # Example 4: Search sorted by upload date
-    print("=== Search Sorted by Upload Date ===")
-    search_date = Search("Python programming", max_results=10, filter=SearchFilters.SORT_BY_DATE)
-    search_date.perform_search()
-    results_date = search_date.get_results()
-    print(f"Query: {results_date['query']}")
-    print(f"Filter: {results_date['filter']} (Sorted by upload date)")
-    print(f"Estimated results: {results_date['estimated_results']}")
-    print(f"Loaded items: {results_date['loaded_items']}")
+    # Example 5: Search with German localization
+    print("=== Search with German Localization ===")
+    search_de = Search("Python programming", max_results=10, country=CountryFilters.DE)
+    search_de.perform_search()
+    results_de = search_de.get_results()
+    print(f"Query: {results_de['query']}")
+    print(f"Country: DE (German)")
+    print(f"Estimated results: {results_de['estimated_results']}")
+    print(f"Loaded items: {results_de['loaded_items']}")
     print()
 
     # Example 5: Search movies

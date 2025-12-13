@@ -5,6 +5,7 @@ This module provides functionality to extract shorts from YouTube.
 """
 
 from ..core import YouTubeCore
+from typing import Optional
 
 class Shorts:
     """
@@ -14,10 +15,17 @@ class Shorts:
         data (dict): The extracted short data.
     """
 
-    def __init__(self):
+    def __init__(self, country: Optional[dict] = None):
         """
         Initialize the Shorts class.
+
+        Args:
+            country (dict): Country filter with 'hl' and 'gl' keys, use CountryFilters constants.
         """
+        if country is None:
+            from ..core import CountryFilters
+            country = CountryFilters.US
+        self.country = country
         self.core = YouTubeCore("https://www.youtube.com")
         self.data = {}
         self.endpoint = "https://www.youtube.com/youtubei/v1/reel/reel_item_watch"
@@ -34,8 +42,8 @@ class Shorts:
         payload = {
             "context": {
                 "client": {
-                    "hl": "de",
-                    "gl": "DE",
+                    "hl": self.country["hl"],
+                    "gl": self.country["gl"],
                     "visitorData": self.visitor_data,
                     "clientName": "WEB",
                     "clientVersion": self.client_version
@@ -226,12 +234,16 @@ class Shorts:
         payload = {
             "context": {
                 "client": {
-                    "hl": "de",
-                    "gl": "DE",
+                    "hl": self.country["hl"],
+                    "gl": self.country["gl"],
                     "visitorData": self.visitor_data,
+                    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 OPR/124.0.0.0,gzip(gfe)",
                     "clientName": "WEB",
                     "clientVersion": self.client_version,
-                    "originalUrl": "https://www.youtube.com/"
+                    "osName": "Windows",
+                    "osVersion": "10.0",
+                    "originalUrl": "https://www.youtube.com/",
+                    "platform": "DESKTOP"
                 },
                 "request": {
                     "useSsl": True

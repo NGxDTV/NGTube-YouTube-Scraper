@@ -9,7 +9,8 @@ A simple web interface for demonstrating all NGTube library features using Flask
 - **Channel Information**: Get channel profiles and recent videos with formatted display
 - **Channel Shorts**: Load and display channel's short-form videos (shorts) with view counts
 - **Channel Playlists**: Browse and access channel playlists with video counts
-- **Search**: Search YouTube with various filters (videos, channels, playlists, movies, etc.)
+- **Search**: Search YouTube with various filters (videos, channels, playlists, movies, etc.) and country localization
+- **Country Localization**: Support for different countries/regions (US, DE, UK, FR, etc.) for all operations
 - **Dark Theme**: Modern dark UI with beautiful gradients and responsive design
 - **Formatted Results**: Clean, readable display instead of raw JSON data
 
@@ -70,6 +71,7 @@ The web interface provides four main sections with a modern dark theme:
   - Movies
   - Last Hour
   - Sort by Date
+- Select country/region for localization (US, DE, UK, FR, etc.)
 - Specify maximum results (default: 10)
 
 ## Technical Details

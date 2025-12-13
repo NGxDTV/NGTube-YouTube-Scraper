@@ -5,7 +5,7 @@ This module provides functionality to extract channel metadata and videos from Y
 """
 
 import re
-from typing import Union
+from typing import Union, Optional
 from ..core import YouTubeCore
 from .. import utils
 
@@ -18,13 +18,18 @@ class Channel:
         data (dict): The extracted channel data.
     """
 
-    def __init__(self, url: str):
+    def __init__(self, url: str, country: Optional[dict] = None):
         """
         Initialize the Channel with a URL.
 
         Args:
             url (str): The YouTube channel URL.
+            country (dict): Country filter with 'hl' and 'gl' keys, use CountryFilters constants.
         """
+        if country is None:
+            from ..core import CountryFilters
+            country = CountryFilters.US
+        self.country = country
         self.url = url
         self.core = YouTubeCore(url)
         self.data = {}
@@ -254,8 +259,8 @@ class Channel:
         return {
             "context": {
                 "client": {
-                    "hl": "en",
-                    "gl": "US",
+                    "hl": self.country["hl"],
+                    "gl": self.country["gl"],
                     "clientName": "WEB",
                     "clientVersion": "2.20251208.06.00",
                     "visitorData": self.visitor_data
@@ -269,8 +274,8 @@ class Channel:
         return {
             "context": {
                 "client": {
-                    "hl": "en",
-                    "gl": "US",
+                    "hl": self.country["hl"],
+                    "gl": self.country["gl"],
                     "clientName": "WEB",
                     "clientVersion": "2.20251208.06.00",
                     "visitorData": self.visitor_data
@@ -285,8 +290,8 @@ class Channel:
         return {
             "context": {
                 "client": {
-                    "hl": "en",
-                    "gl": "US",
+                    "hl": self.country["hl"],
+                    "gl": self.country["gl"],
                     "clientName": "WEB",
                     "clientVersion": "2.20251208.06.00",
                     "visitorData": self.visitor_data
@@ -301,8 +306,8 @@ class Channel:
         return {
             "context": {
                 "client": {
-                    "hl": "en",
-                    "gl": "US",
+                    "hl": self.country["hl"],
+                    "gl": self.country["gl"],
                     "clientName": "WEB",
                     "clientVersion": "2.20251208.06.00",
                     "visitorData": self.visitor_data
@@ -419,8 +424,8 @@ class Channel:
             payload_continuation = {
                 "context": {
                     "client": {
-                        "hl": "en",
-                        "gl": "US",
+                        "hl": self.country["hl"],
+                        "gl": self.country["gl"],
                         "clientName": "WEB",
                         "clientVersion": "2.20251208.06.00",
                         "visitorData": self.visitor_data

@@ -10,6 +10,20 @@ from urllib3.util.retry import Retry
 import re
 import demjson3 as demjson
 
+class CountryFilters:
+    """
+    Predefined country filters for YouTube API requests.
+    Each filter contains 'hl' (host language) and 'gl' (geolocation) parameters.
+    """
+    US = {"hl": "en", "gl": "US"}
+    DE = {"hl": "de", "gl": "DE"}
+    # Add more countries as needed
+    UK = {"hl": "en", "gl": "GB"}
+    FR = {"hl": "fr", "gl": "FR"}
+    ES = {"hl": "es", "gl": "ES"}
+    IT = {"hl": "it", "gl": "IT"}
+    JP = {"hl": "ja", "gl": "JP"}
+
 class YouTubeCore:
     """
     Core class for YouTube data extraction.

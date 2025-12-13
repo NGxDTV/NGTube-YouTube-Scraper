@@ -31,6 +31,20 @@ Demonstrates how to extract comprehensive channel profile data, including videos
 python examples/channel_usage.py
 ```
 
+### search_usage.py
+Demonstrates how to perform YouTube searches with various filters and country localization.
+
+**Features:**
+- Basic search with customizable result limits
+- Search with filters (channels only, videos today, sort by date, etc.)
+- Country localization support (US, DE, UK, FR, etc.)
+- Save search results to `search_results.json`
+
+**Usage:**
+```bash
+python examples/search_usage.py
+```
+
 ### shorts_usage.py
 Demonstrates how to fetch random shorts from YouTube's homepage.
 
