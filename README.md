@@ -4,6 +4,7 @@
 ![Python](https://img.shields.io/pypi/pyversions/NGTube)
 ![License](https://img.shields.io/pypi/l/NGTube)
 ![Downloads](https://img.shields.io/pypi/dm/NGTube)
+![Downloads](https://pepy.tech/badge/ngtube)
 
 A comprehensive Python library for scraping YouTube data, including **videos, comments, channels, shorts, and search results**, without using the official YouTube Data API.
 
